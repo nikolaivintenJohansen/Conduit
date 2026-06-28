@@ -1,0 +1,345 @@
+================================================================================
+UNIVERSAL AI WALLET — ENGINEERING TASKS
+================================================================================
+
+Legend
+  [MVP]     Required for Stage 1 exit: fund → call → deduct → see usage
+  [STAGE 2] Partner pricing and access control
+  [STAGE 3] Cross-app login and distribution
+  [STAGE 4] Marketplace and payout reconciliation
+  [LATER]   Post-MVP / scale
+
+Dependency shorthand: "depends on" = must be started or done before this task
+
+
+================================================================================
+1. LiteLLM core audit and foundation [MVP]
+================================================================================
+Description:
+  Inspect LiteLLM's gateway architecture, auth, virtual keys, access groups,
+  routing, logging, and pricing hooks. Decide fork vs wrap vs reimplement.
+  Produce the technical spine docs the rest of the build depends on.
+
+Scope
+  - LiteLLM module map: what to fork, wrap, or reimplement
+  - System architecture diagram (auth, wallet, gateway, metering, settlement)
+  - Data model: users, wallets, balances, virtual keys, access groups,
+    usage events, price rules, partner accounts, app registrations
+  - API contracts: OpenAI-compatible gateway surface + wallet/auth APIs
+  - Security model: key storage, payment boundaries (no raw card data),
+    audit logging, idempotency strategy
+  - Partner pricing model: base cost + markup + platform fee
+
+Depends on: nothing (start here)
+
+Unlocks: 2, 3, 4, 5, 6, 9, 10
+
+
+================================================================================
+2. Wallet login and identity layer [MVP] + [STAGE 3]
+================================================================================
+Description:
+  Design and implement user identity for the AI wallet: account creation,
+  session issuance, API key issuance, and (later) cross-app login.
+
+MVP scope [MVP]
+  - Email/password or OAuth signup and login
+  - Session issuance (JWT or equivalent)
+  - User-facing virtual API key issuance and rotation
+  - Account profile basics
+
+Stage 3 scope [STAGE 3]
+  - OAuth2/OIDC "Sign in with AI Wallet" for partner apps
+  - App registration (client ID, redirect URIs, scopes)
+  - Consent screen: which apps can charge the wallet, per-app spend limits
+  - User ability to revoke app access
+
+Optional / clarify early
+  - Signed-message auth (Web3-style) only if intentionally part of MVP;
+    otherwise treat as a later auth method alongside email/OAuth
+
+Depends on: 1
+
+Unlocks: 3, 7a, 8
+
+
+================================================================================
+3. Balance and ledger service [MVP]
+================================================================================
+Description:
+  Build the internal prepaid balance system that tracks credits, reservations,
+  deductions, refunds, spend limits, and transaction history.
+
+Scope
+  - Prepaid balance per user (and later per team/org)
+  - Atomic deduct with idempotency keys (prevent double-charge on retries)
+  - Reservations / holds before request completion where needed
+  - Refunds and manual adjustments (admin)
+  - Per-account and per-key spend limits and hard stops at zero balance
+  - Immutable transaction history (credits, debits, holds, releases)
+
+Depends on: 1, 2
+
+Unlocks: 4, 6, 7a
+
+
+================================================================================
+4. Wallet top-up and payment integration [MVP]
+================================================================================
+Description:
+  Let users add funds to their prepaid balance via a payment provider.
+  This completes the core loop: fund → call → deduct.
+
+Scope
+  - Stripe (or similar) checkout / payment intents
+  - Webhook handling with idempotent balance crediting
+  - PCI boundary: never store raw card data on our servers
+  - Top-up confirmation, receipt metadata, failed-payment handling
+  - Low-balance state surfaced to dashboard and gateway
+
+Depends on: 1, 2, 3
+
+Unlocks: MVP end-to-end demo (fund + consume)
+
+
+================================================================================
+5. Pricing engine and markup rules [STAGE 2]
+================================================================================
+Description:
+  Create the pricing system that lets companies set per-1M-token prices above
+  base cost while preserving margin and tracking platform fees.
+
+Scope
+  - Base provider cost ingestion (from provider APIs or LiteLLM cost hooks)
+  - Price rules: base cost + partner markup + platform fee
+  - Per-model and per-partner rule configuration
+  - Revenue allocation per request (provider cost, platform fee, partner margin)
+  - Versioning or effective-date rules if prices change over time
+
+Depends on: 1, 3
+
+Unlocks: 6, 7b
+
+
+================================================================================
+6. Access groups and model entitlements [STAGE 2]
+================================================================================
+Description:
+  Implement LiteLLM-style access groups: define which models, features, and
+  (later) apps/MCP/agents a key or user may use. Enforce before routing.
+
+Scope
+  - Group definitions: allowed models, features, future app scopes
+  - Attach groups to virtual keys, users, or teams
+  - Gateway enforcement: deny disallowed models before provider call
+  - Partner-facing configuration API or admin UI hooks
+
+Depends on: 1, 5
+
+Unlocks: 7b, 8
+
+
+================================================================================
+7. Provider routing and adapter layer [MVP]
+================================================================================
+Description:
+  Implement the abstraction that routes requests to OpenAI, Anthropic, Google,
+  open-source models, or other providers and normalizes responses.
+
+MVP scope [MVP]
+  - One OpenAI-compatible endpoint (e.g. /v1/chat/completions)
+  - Virtual key validation on every request
+  - Request lifecycle: auth → balance check → rate limit → route → async log
+  - Small provider set (e.g. OpenAI + one fallback)
+  - Basic routing: primary provider + simple failover
+  - RPM/TPM rate limits
+
+Later [LATER]
+  - Cost vs latency routing policies, circuit breakers, health checks
+  - Embeddings, images, and additional OpenAI-compatible routes
+
+Depends on: 1, 2, 3, 6 (6 can be a soft dependency for MVP if all models allowed initially)
+
+Unlocks: 6 (metering), 9
+
+
+================================================================================
+8. Usage metering and settlement [MVP] + [STAGE 4]
+================================================================================
+Description:
+  Record token usage and final cost for each request, then apply deductions
+  and revenue allocation after completion.
+
+Per-request (MVP) [MVP]
+  - Capture input/output tokens and model per request
+  - Compute final cost using pricing rules (or flat provider cost in earliest MVP)
+  - Deduct from prepaid balance; release or adjust reservations
+  - Async usage logging (do not block response on log write)
+  - Block requests when balance insufficient
+
+Periodic settlement (post-MVP) [STAGE 4]
+  - Partner payout ledger: gross usage, platform fee, partner margin, provider cost
+  - Reconciliation: gateway logs match balance movements within defined tolerance
+  - Payout schedule hooks (e.g. monthly); invoicing / tax hooks as needed
+
+Depends on: 3, 5, 7
+
+Unlocks: 7a, 7b, MVP exit criteria
+
+
+================================================================================
+9a. User wallet dashboard [MVP]
+================================================================================
+Description:
+  End-user UI for balance, usage, and spend controls. Required for Stage 1
+  exit criteria before full partner admin exists.
+
+Scope
+  - Current balance and low-balance warnings
+  - Recent usage and spend by model
+  - Top-up flow entry point (links to task 4)
+  - API key management (view, rotate, revoke)
+  - Basic spend caps / monthly limits (user-level)
+
+Depends on: 2, 3, 4, 8
+
+Unlocks: MVP user-facing product
+
+
+================================================================================
+9b. Partner admin dashboard and company controls [STAGE 2] + [STAGE 3]
+================================================================================
+Description:
+  Dashboard for companies to manage model access, pricing, usage, and revenue.
+
+Stage 2 [STAGE 2]
+  - Set per-1M-token (or per-request) prices above raw cost
+  - Manage access groups and allowed models
+  - View usage, margin, and platform fees
+  - Per-key budgets, rate limits, spend alerts
+
+Stage 3 [STAGE 3]
+  - App installs, active users, delegated auth usage
+  - Revenue reporting per app / integration
+
+Depends on: 5, 6, 8
+
+Unlocks: partner go-live, Stage 3 demo apps
+
+
+================================================================================
+10. SDK and client integration layer [STAGE 3]
+================================================================================
+Description:
+  Create the client-side SDK and integration examples so apps use one key and
+  one account across multiple AI tools.
+
+Scope
+  - Documented OAuth / "Sign in with AI Wallet" flow for partner apps
+  - SDK or reference client (JS/TS minimum; others as needed)
+  - Examples: paste API key into compatible client; partner app with delegated auth
+  - Consent, scopes, and per-app spend limit integration
+  - Demo partner app proving cross-app login without separate billing
+
+Depends on: 2 (Stage 3 auth), 7, 8, 9b
+
+Unlocks: distribution, Stage 3 exit criteria
+
+
+================================================================================
+11. Testing and sandbox environment [MVP] — ongoing from week 1
+================================================================================
+Description:
+  Automated tests, local dev setup, mock providers, and a sandbox flow for
+  validating routing, billing, and auth before production.
+
+Scope
+  - Local dev setup (docker-compose or equivalent)
+  - Mock providers for routing and cost without live API spend
+  - Tests: auth, balance deduct idempotency, insufficient balance, pricing,
+    access group denial, webhook idempotency for top-ups
+  - Sandbox API keys and seed data for demos
+  - Run tests in CI on every change — not only at project end
+
+Depends on: 1 (start immediately after architecture spike)
+
+Note: Build this in parallel with 2–8; do not defer entirely to the end.
+
+
+================================================================================
+12. Deployment and observability [MVP minimal] + [LATER full]
+================================================================================
+Description:
+  Docker, environment config, logging, metrics, alerts, and deployment workflows.
+
+MVP minimal [MVP]
+  - Dockerfile / compose for local and staging
+  - Environment config and secrets handling
+  - Structured request logging (auth, route, cost, latency)
+  - Basic health checks
+
+Full production [LATER]
+  - Metrics, tracing, SLOs, alerting
+  - Multi-environment deploy workflows (staging → production)
+  - Abuse detection hooks, load testing, HA / multi-region as needed
+
+Depends on: 1 (minimal deploy early); full stack for complete observability
+
+Note: Stand up minimal deploy in week 1–2 so integration testing is realistic.
+
+
+================================================================================
+SUGGESTED BUILD ORDER
+================================================================================
+
+Phase 0 — Foundation
+  1 → 11 (start) → 12 (minimal)
+
+Phase 1 — MVP core loop
+  2 + 3 in parallel
+  → 4 (top-ups)
+  → 7 (gateway skeleton; allow-all models until 6 exists)
+  → 8 (per-request metering)
+  → 9a (user dashboard)
+  MVP exit: user funds wallet, pastes key, calls API, balance decreases, usage visible
+
+Phase 2 — Partner economics
+  5 → 6 → 8 (revenue allocation) → 9b
+
+Phase 3 — Distribution
+  2 (Stage 3 OAuth) → 10 → 9b (app metrics)
+
+Phase 4 — Business layer (optional / post-MVP)
+  8 (periodic settlement and payouts)
+  Marketplace, teams/org wallets, SSO — see PROJECT_STAGES.txt Stages 4–5
+
+
+================================================================================
+MVP CHECKLIST (maps to tasks above)
+================================================================================
+  [ ] 1  Architecture, schema, LiteLLM decision
+  [ ] 2  Wallet login + API keys
+  [ ] 3  Balance and ledger
+  [ ] 4  Top-up / payments
+  [ ] 7  OpenAI-compatible gateway (1–2 providers)
+  [ ] 8  Per-request metering and deduct
+  [ ] 9a User dashboard (balance + usage)
+  [ ] 11 Core tests and local sandbox
+  [ ] 12 Minimal deploy and logging
+
+
+================================================================================
+EXPLICITLY OUT OF SCOPE FOR FIRST RELEASE (track separately)
+================================================================================
+  - Marketplace / app catalog and discovery
+  - Automated partner payouts and tax/invoicing
+  - Organizations, team wallets, enterprise SSO
+  - MCP/agents in access groups (gateway extension)
+  - Multi-region HA and advanced routing policies
+
+See PROJECT_STAGES.txt for full staged roadmap.
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

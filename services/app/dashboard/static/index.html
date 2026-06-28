@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Universal AI Wallet</title>
+    <link rel="stylesheet" href="/dashboard/styles.css" />
+  </head>
+  <body>
+    <div id="auth-view" class="container auth-panel hidden">
+      <h1 style="text-align: center; margin-bottom: 1.5rem">Universal AI Wallet</h1>
+      <div id="auth-error" class="alert alert-error hidden"></div>
+      <div class="tabs">
+        <button type="button" class="tab active" data-tab="login">Sign in</button>
+        <button type="button" class="tab" data-tab="register">Create account</button>
+      </div>
+      <div class="card">
+        <form id="login-form">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" required autocomplete="email" />
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" required autocomplete="current-password" />
+          <button type="submit" class="btn btn-primary" style="width: 100%">Sign in</button>
+        </form>
+        <form id="register-form" class="hidden">
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" required autocomplete="email" />
+          <label for="register-name">Display name (optional)</label>
+          <input id="register-name" type="text" autocomplete="name" />
+          <label for="register-password">Password (min 8 characters)</label>
+          <input id="register-password" type="password" required minlength="8" autocomplete="new-password" />
+          <button type="submit" class="btn btn-primary" style="width: 100%">Create account</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="dashboard-view" class="container hidden">
+      <header>
+        <div>
+          <h1>Universal AI Wallet</h1>
+          <div class="user-meta" id="user-email"></div>
+        </div>
+        <button type="button" id="logout-btn" class="btn btn-secondary btn-sm">Sign out</button>
+      </header>
+
+      <div id="dashboard-error" class="alert alert-error hidden"></div>
+      <div id="dashboard-success" class="alert alert-success hidden"></div>
+      <div id="low-balance-alert" class="alert alert-warning hidden"></div>
+
+      <div class="card">
+        <h2>Balance</h2>
+        <div class="balance-amount" id="balance-display">$0.00</div>
+        <div class="balance-meta">
+          Available: <span id="available-display">$0.00</span>
+          · Held: <span id="held-display">$0.00</span>
+        </div>
+        <div class="balance-meta" style="margin-top: 0.5rem">
+          Monthly spend: <span id="monthly-spend-display">$0.00</span>
+          <span id="spend-limit-display"></span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Add funds</h2>
+          <form id="topup-form" class="inline-form">
+            <div style="flex: 1">
+              <label for="topup-amount">Amount (USD)</label>
+              <input id="topup-amount" type="number" min="0.50" step="0.01" value="10.00" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Top up</button>
+          </form>
+          <p class="balance-meta" style="margin: 0.75rem 0 0">Minimum top-up: $0.50. Redirects to Stripe Checkout.</p>
+        </div>
+
+        <div class="card">
+          <h2>Spend controls</h2>
+          <form id="settings-form">
+            <label for="spend-limit">Monthly spend cap (USD, blank = no limit)</label>
+            <input id="spend-limit" type="number" min="0" step="0.01" placeholder="No limit" />
+            <label for="low-balance-threshold">Low balance warning (USD)</label>
+            <input id="low-balance-threshold" type="number" min="0" step="0.01" required />
+            <button type="submit" class="btn btn-primary">Save settings</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Usage by model</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Requests</th>
+              <th>Tokens</th>
+              <th>Spend</th>
+            </tr>
+          </thead>
+          <tbody id="usage-by-model-body">
+            <tr><td colspan="4" class="balance-meta">No usage yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Recent usage</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Model</th>
+              <th>Tokens</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody id="usage-body">
+            <tr><td colspan="4" class="balance-meta">No usage yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem">
+          <h2 style="margin: 0">API keys</h2>
+          <button type="button" id="create-key-btn" class="btn btn-primary btn-sm">Create key</button>
+        </div>
+        <div id="key-reveal" class="key-reveal hidden">
+          <strong>Copy your new key now — it won't be shown again:</strong>
+          <div class="mono" id="key-reveal-text"></div>
+          <button type="button" id="copy-key-btn" class="btn btn-secondary btn-sm" style="margin-top: 0.5rem">Copy</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Prefix</th>
+              <th>Limits</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="keys-body">
+            <tr><td colspan="4" class="balance-meta">No keys yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script src="/dashboard/app.js"></script>
+  </body>
+</html>

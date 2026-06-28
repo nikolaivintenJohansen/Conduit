@@ -1,0 +1,889 @@
+openapi: 3.1.0
+info:
+  title: Universal AI Wallet — Wallet API
+  version: 1.0.0
+  description: Account, balance, keys, and top-ups.
+
+servers:
+  - url: https://api.example.com/wallet/v1
+
+paths:
+  /auth/register:
+    post:
+      operationId: register
+      summary: Create account
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Login
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /me:
+    get:
+      operationId: getMe
+      summary: Current user profile
+      tags: [User]
+      security:
+        - JwtAuth: []
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /wallet:
+    get:
+      operationId: getWallet
+      summary: Wallet balance
+      tags: [Wallet]
+      security:
+        - JwtAuth: []
+      responses:
+        '200':
+          description: Balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+
+  /wallet/transactions:
+    get:
+      operationId: listTransactions
+      summary: Ledger history
+      tags: [Wallet]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Transaction page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LedgerEntry'
+                  next_cursor:
+                    type: string
+
+  /usage:
+    get:
+      operationId: listUsage
+      summary: Usage events
+      tags: [Usage]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Usage page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UsageEvent'
+
+  /keys:
+    get:
+      operationId: listKeys
+      summary: List virtual keys
+      tags: [Keys]
+      security:
+        - JwtAuth: []
+      responses:
+        '200':
+          description: Keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VirtualKey'
+
+    post:
+      operationId: createKey
+      summary: Create virtual key
+      tags: [Keys]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                rpm_limit:
+                  type: integer
+                  default: 60
+                tpm_limit:
+                  type: integer
+                  default: 100000
+      responses:
+        '201':
+          description: Key created — plaintext shown once
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VirtualKeyCreated'
+
+  /keys/{keyId}:
+    delete:
+      operationId: revokeKey
+      summary: Revoke key
+      tags: [Keys]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Revoked
+
+  /topups/checkout:
+    post:
+      operationId: createTopupCheckout
+      summary: Start Stripe checkout
+      tags: [Topups]
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount_microdollars]
+              properties:
+                amount_microdollars:
+                  type: integer
+                  minimum: 500000
+      responses:
+        '200':
+          description: Checkout URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkout_url:
+                    type: string
+                    format: uri
+                  payment_intent_id:
+                    type: string
+                    format: uuid
+
+  /auth/oauth/google:
+    get:
+      operationId: googleLoginRedirect
+      summary: Redirect to Google OAuth consent
+      tags: [Auth]
+      security: []
+      responses:
+        '302':
+          description: Redirect to Google
+        '503':
+          description: Google OAuth not configured
+    post:
+      operationId: googleLoginCallback
+      summary: Exchange Google code for a wallet session
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, state]
+              properties:
+                code:
+                  type: string
+                state:
+                  type: string
+      responses:
+        '200':
+          description: Wallet session (same shape as email/password login)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid state or exchange failure
+
+  /apps:
+    get:
+      operationId: listConnectedApps
+      summary: List the user's connected apps
+      tags: [ConnectedApps]
+      security:
+        - JwtAuth: []
+      responses:
+        '200':
+          description: Connected apps
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConnectedApp'
+
+  /apps/{clientId}/connect:
+    post:
+      operationId: connectApp
+      summary: Connect / set a per-app spend cap
+      tags: [ConnectedApps]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                spend_limit_microdollars:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+                reset_period:
+                  type: string
+                  enum: [monthly, lifetime]
+                  default: monthly
+                display_name:
+                  type: string
+      responses:
+        '201':
+          description: Connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectedApp'
+
+  /apps/{installId}:
+    get:
+      operationId: getConnectedApp
+      summary: Connected app detail
+      tags: [ConnectedApps]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: installId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectedApp'
+    patch:
+      operationId: updateAllowance
+      summary: Update the per-app spend cap
+      tags: [ConnectedApps]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: installId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                spend_limit_microdollars:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectedApp'
+    delete:
+      operationId: revokeApp
+      summary: Revoke app access and all refresh tokens
+      tags: [ConnectedApps]
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: installId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Revoked
+
+  /partner/{partnerSlug}/apps:
+    post:
+      operationId: createAppRegistration
+      summary: Register an OAuth client (partner admin)
+      tags: [PartnerApps]
+      security:
+        - PartnerAdmin: []
+      parameters:
+        - name: partnerSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, redirect_uris]
+              properties:
+                name:
+                  type: string
+                redirect_uris:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                logo_url:
+                  type: string
+      responses:
+        '201':
+          description: Created — client_secret returned once
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppRegistrationCreated'
+    get:
+      operationId: listAppRegistrations
+      summary: List app registrations (partner admin)
+      tags: [PartnerApps]
+      security:
+        - PartnerAdmin: []
+      parameters:
+        - name: partnerSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppRegistration'
+
+  # --- Root-mounted OAuth2/OIDC endpoints (no /wallet/v1 prefix) ---
+  /.well-known/openid-configuration:
+    get:
+      operationId: oidcDiscovery
+      summary: OIDC discovery metadata
+      tags: [OAuth]
+      servers:
+        - url: https://api.example.com
+      security: []
+      responses:
+        '200':
+          description: Discovery document
+
+  /oauth/authorize:
+    get:
+      operationId: authorize
+      summary: Authorization endpoint (consent descriptor; requires user session)
+      tags: [OAuth]
+      servers:
+        - url: https://api.example.com
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: response_type
+          in: query
+          schema:
+            type: string
+            default: code
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: scope
+          in: query
+          schema:
+            type: string
+        - name: code_challenge
+          in: query
+          schema:
+            type: string
+        - name: code_challenge_method
+          in: query
+          schema:
+            type: string
+            default: S256
+      responses:
+        '200':
+          description: Consent descriptor
+        '400':
+          description: Invalid client or redirect_uri
+        '401':
+          description: User session required
+
+  /oauth/authorize/consent:
+    post:
+      operationId: consent
+      summary: Approve spend cap and issue an authorization code
+      tags: [OAuth]
+      servers:
+        - url: https://api.example.com
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_id, redirect_uri]
+              properties:
+                client_id:
+                  type: string
+                redirect_uri:
+                  type: string
+                state:
+                  type: string
+                scope:
+                  type: string
+                code_challenge:
+                  type: string
+                code_challenge_method:
+                  type: string
+                  default: S256
+                spend_limit_microdollars:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+                reset_period:
+                  type: string
+                  enum: [monthly, lifetime]
+                  default: monthly
+      responses:
+        '200':
+          description: Redirect URI with code + state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redirect_uri:
+                    type: string
+                  code:
+                    type: string
+                  state:
+                    type: string
+
+  /oauth/token:
+    post:
+      operationId: token
+      summary: Token endpoint (authorization_code + PKCE or refresh_token)
+      tags: [OAuth]
+      servers:
+        - url: https://api.example.com
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type, client_id]
+              properties:
+                grant_type:
+                  type: string
+                  enum: [authorization_code, refresh_token]
+                code:
+                  type: string
+                code_verifier:
+                  type: string
+                refresh_token:
+                  type: string
+                redirect_uri:
+                  type: string
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                scope:
+                  type: string
+      responses:
+        '200':
+          description: Token set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenSet'
+        '400':
+          description: invalid_grant / invalid_client / unsupported_grant_type
+
+  /oauth/userinfo:
+    get:
+      operationId: userinfo
+      summary: OIDC UserInfo
+      tags: [OAuth]
+      servers:
+        - url: https://api.example.com
+      security:
+        - OAuthBearer: []
+      responses:
+        '200':
+          description: User profile + app install context
+        '401':
+          description: invalid_token
+
+  /oauth/jwks:
+    get:
+      operationId: jwks
+      summary: JWKS endpoint (HS256 stub for MVP; RS256 in Stage 5)
+      tags: [OAuth]
+      servers:
+        - url: https://api.example.com
+      security: []
+      responses:
+        '200':
+          description: JWKS
+
+components:
+  securitySchemes:
+    JwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    OAuthBearer:
+      type: http
+      scheme: bearer
+      description: OAuth2 app access token (JWT with app_install_id claim)
+    PartnerAdmin:
+      type: apiKey
+      in: header
+      name: X-Partner-Admin-Token
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        display_name:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [bearer]
+        expires_in:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+
+    Wallet:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          format: uuid
+        balance_microdollars:
+          type: integer
+        held_microdollars:
+          type: integer
+        available_microdollars:
+          type: integer
+        currency:
+          type: string
+          enum: [USD]
+        low_balance_threshold_microdollars:
+          type: integer
+
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entry_type:
+          type: string
+        amount_microdollars:
+          type: integer
+        balance_after_microdollars:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UsageEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        request_id:
+          type: string
+        model:
+          type: string
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+        charged_microdollars:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    VirtualKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key_prefix:
+          type: string
+        rpm_limit:
+          type: integer
+        tpm_limit:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+
+    VirtualKeyCreated:
+      allOf:
+        - $ref: '#/components/schemas/VirtualKey'
+        - type: object
+          required: [key]
+          properties:
+            key:
+              type: string
+              description: Full key — only returned at creation
+
+    ConnectedApp:
+      type: object
+      properties:
+        install_id:
+          type: string
+          format: uuid
+        client_id:
+          type: string
+        app_name:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        spend_limit_microdollars:
+          type: integer
+          nullable: true
+        allowance_spent_microdollars:
+          type: integer
+        allowance_reset_period:
+          type: string
+          enum: [monthly, lifetime]
+        consented_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AppRegistration:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        partner_account_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        client_id:
+          type: string
+        redirect_uris:
+          type: array
+          items:
+            type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+        logo_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    AppRegistrationCreated:
+      allOf:
+        - $ref: '#/components/schemas/AppRegistration'
+        - type: object
+          required: [client_secret]
+          properties:
+            client_secret:
+              type: string
+              description: Full secret — only returned at creation/rotation
+
+    TokenSet:
+      type: object
+      properties:
+        access_token:
+          type: string
+        id_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          default: Bearer
+        expires_in:
+          type: integer
+        scope:
+          type: string

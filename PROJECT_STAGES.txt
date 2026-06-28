@@ -1,0 +1,248 @@
+================================================================================
+UNIVERSAL AI WALLET — PROJECT STAGES
+================================================================================
+
+ONE-SENTENCE PITCH
+A universal AI wallet and login system that lets users authenticate once, fund
+one balance, and consume AI across many apps and model providers, while partner
+companies set per-token pricing and keep margin.
+
+POSITIONING
+Not "OpenRouter with login." More like MetaMask for AI plus a usage marketplace:
+one identity, one wallet, one balance, many AI apps.
+
+ARCHITECTURE (THREE VISIBLE PARTS)
+  1. Login with AI wallet
+  2. One shared prepaid balance
+  3. One gateway that routes usage to the right model or app
+
+UNDER THE HOOD
+Auth, usage metering, pricing, settlement. Apps and providers receive requests and
+get paid on actual usage.
+
+LITELLM AS REFERENCE (GATEWAY PRIMITIVES ONLY — NOT THE FULL PRODUCT)
+  Take: virtual keys, access groups, request lifecycle, routing/failover,
+        custom pricing, usage logging and budgets.
+  Do not copy: wallet identity, cross-app login, funding, settlement,
+                marketplace/business model — that is your differentiation.
+
+
+================================================================================
+STAGE 0 — FOUNDATION & ARCHITECTURE
+================================================================================
+Goal: Lock scope, define boundaries, and choose the technical spine before
+building user-facing features.
+
+Deliverables
+  - Product requirements doc (MVP vs post-MVP)
+  - System architecture diagram (auth, wallet, gateway, metering, settlement)
+  - Data model: users, wallets, balances, virtual keys, access groups,
+    usage events, price rules, partner accounts
+  - API contracts: OpenAI-compatible gateway surface + wallet/auth APIs
+  - LiteLLM evaluation: which modules to fork, wrap, or reimplement
+  - Security model: key storage, PCI/payment boundaries, audit logging
+  - Partner pricing model: base cost + markup + platform fee
+
+Exit criteria
+  - Team agrees on MVP boundary and "what we build vs what LiteLLM gives us"
+  - Schema and request lifecycle documented end-to-end
+
+
+================================================================================
+STAGE 1 — MVP CORE (WALLET + GATEWAY SKELETON)
+================================================================================
+Goal: Prove the core loop: sign in, fund, call one endpoint, deduct balance.
+
+User-facing
+  - Wallet-based signup/login (email + OAuth minimum)
+  - Prepaid balance (add funds via one payment method)
+  - Simple usage dashboard: balance, recent spend, low-balance warning
+
+Gateway (LiteLLM-inspired, minimal)
+  - One OpenAI-compatible endpoint (/v1/chat/completions or equivalent)
+  - Virtual keys: one user-facing key per account, validated on every request
+  - Request lifecycle:
+      check key → check budget/balance → rate limit → route → log usage async
+  - Small provider set (e.g. OpenAI + one fallback)
+  - Basic routing (single primary, simple failover)
+
+Metering & billing
+  - Token usage capture per request
+  - Cost deduction from prepaid balance
+  - Hard stop when balance insufficient
+
+Exit criteria
+  - A test user can fund, paste a key into a compatible client, and consume
+  - Balance decreases correctly; usage appears in dashboard
+  - Requests blocked when balance is zero
+
+
+================================================================================
+STAGE 2 — ACCESS CONTROL & PARTNER PRICING
+================================================================================
+Goal: Enable "this account can access these models/apps" and "companies earn
+margin on usage."
+
+Access groups (from LiteLLM pattern)
+  - Groups define allowed models, features, and later apps/MCP/agents
+  - Attach groups to virtual keys, users, or teams
+  - Enforce at gateway before routing
+
+Per-company / per-app pricing
+  - Price rules: base provider cost + partner markup + platform fee
+  - Revenue allocation per request (who gets what)
+  - Partner admin: set per-1M-token (or per-request) price above raw cost
+
+Operational controls
+  - Per-key and per-account budgets
+  - Rate limits (RPM/TPM)
+  - Spend caps and alerts
+
+Exit criteria
+  - Two partners with different prices on the same underlying model
+  - Margin correctly allocated in usage logs
+  - Access group denies disallowed models
+
+
+================================================================================
+STAGE 3 — MULTI-APP LOGIN & DISTRIBUTION
+================================================================================
+Goal: Move from "API key in a client" to "Sign in with AI Wallet" across apps.
+
+Identity layer
+  - OAuth2/OIDC-style "Sign in with AI Wallet"
+  - Consent screen: which apps can charge the wallet, spend limits
+  - App registration for partners (client ID, redirect URIs, scopes)
+
+App integration
+  - SDK or documented flow for partner apps to authenticate users
+  - Apps call gateway with user context (delegated token or app + user key)
+  - Partner dashboard: installs, active users, revenue, usage
+
+Gateway expansion
+  - More providers/models behind same endpoint
+  - Improved routing: cost vs latency policies, retries, fallbacks
+  - Optional: embeddings, images, or other OpenAI-compatible routes
+
+Exit criteria
+  - User signs into a demo partner app with AI Wallet, no separate billing
+  - Partner sees usage and earnings in their dashboard
+  - User revokes app access and spend stops
+
+
+================================================================================
+STAGE 4 — MARKETPLACE & SETTLEMENT
+================================================================================
+Goal: Full business layer — partners as distribution channel, not just API users.
+
+Marketplace
+  - App/provider catalog (discoverable integrations)
+  - Public partner pricing pages
+  - Featured apps, categories, search (lightweight at first)
+
+Settlement
+  - Partner payout schedule (e.g. monthly)
+  - Ledger: gross usage, platform fee, partner margin, provider cost
+  - Invoicing / tax hooks (jurisdiction-dependent)
+
+User experience
+  - Unified spend controls: per-app limits, monthly caps, approval flows
+  - Transaction history with app/model breakdown
+  - Export for accounting
+
+Exit criteria
+  - End-to-end money flow documented: user top-up → usage → partner payout
+  - Reconciliation matches gateway logs to the cent (or defined tolerance)
+
+
+================================================================================
+STAGE 5 — SCALE, RESILIENCE & ENTERPRISE
+================================================================================
+Goal: Production hardening and segments that drive retention and revenue.
+
+Platform
+  - Multi-region or HA gateway deployment
+  - Advanced routing: load balancing, circuit breakers, provider health
+  - Async usage pipeline at scale (queues, idempotency, replay)
+  - Observability: tracing, SLOs, abuse detection
+
+Enterprise & teams
+  - Organizations, team wallets, shared budgets
+  - SSO (SAML/OIDC for companies)
+  - Admin roles, approval workflows, compliance exports
+
+Ecosystem
+  - MCP servers and agents in access groups
+  - Webhooks for partners (usage, low balance, payouts)
+  - Public API for partners to manage pricing and keys programmatically
+
+Exit criteria
+  - Load-tested gateway with defined uptime target
+  - At least one enterprise pilot on team billing + SSO
+
+
+================================================================================
+WHAT TO BUILD VS WHAT TO BORROW (SUMMARY)
+================================================================================
+
+From LiteLLM (gateway primitives)
+  [x] Virtual keys
+  [x] Access groups
+  [x] Request lifecycle (auth → budget → rate limit → route → log)
+  [x] Routing and failover
+  [x] Custom pricing and cost tracking
+  [x] Async usage logging and budget enforcement
+
+You build (differentiation)
+  [x] Wallet identity and cross-app login
+  [x] Prepaid balance and top-ups
+  [x] Partner margin and marketplace
+  [x] Settlement and payouts
+  [x] User consent and spend controls across apps
+  [x] "One AI account" product experience
+
+
+================================================================================
+MVP CHECKLIST (STAGE 1 + SLICE OF STAGE 2)
+================================================================================
+  [ ] Wallet-based login
+  [ ] Prepaid balance
+  [ ] One OpenAI-compatible endpoint
+  [ ] Small set of supported apps/providers
+  [ ] Per-company token pricing (minimal: one partner, one rule)
+  [ ] Usage dashboard and spend controls
+
+
+================================================================================
+SUGGESTED BUILD ORDER (WEEKS — ADJUST TO TEAM SIZE)
+================================================================================
+  Weeks 1–2   Stage 0 (architecture, schema, LiteLLM spike)
+  Weeks 3–6   Stage 1 (wallet + gateway + metering)
+  Weeks 7–10  Stage 2 (access groups + partner pricing)
+  Weeks 11–14 Stage 3 (Sign in with AI Wallet + demo app)
+  Weeks 15+   Stage 4–5 (marketplace, settlement, scale)
+
+
+================================================================================
+KEY RISKS & MITIGATIONS
+================================================================================
+  Payment compliance     → Use Stripe or similar; avoid storing card data
+  Provider ToS           → Route through allowed APIs; clear attribution
+  Balance race conditions→ Atomic deduct + idempotent usage events
+  Partner trust          → Transparent usage logs and payout reports
+  Scope creep            → Ship Stage 1 before marketplace features
+
+
+================================================================================
+SUCCESS METRICS (BY STAGE)
+================================================================================
+  Stage 1: Funded users completing real API calls; accurate balance deduction
+  Stage 2: Partners live with custom pricing; positive unit economics per call
+  Stage 3: OAuth installs; repeat usage across 2+ apps per user
+  Stage 4: Partner payouts without manual reconciliation
+  Stage 5: Uptime, latency SLOs; enterprise contracts
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

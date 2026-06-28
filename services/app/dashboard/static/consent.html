@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Wallet — Connect App</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 64px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 24px; background: Canvas; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    .muted { color: #666; font-size: 0.9rem; }
+    label { display: block; font-size: 0.85rem; margin-top: 16px; }
+    input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 1rem; }
+    button { margin-top: 20px; width: 100%; padding: 12px; font-size: 1rem; border-radius: 8px; border: none; background: #2563eb; color: white; cursor: pointer; }
+    button:disabled { background: #999; }
+    .scopes { margin-top: 12px; }
+    .scopes li { margin: 4px 0; }
+    .error { color: #b91c1c; margin-top: 12px; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 id="app-name">Connect to AI Wallet</h1>
+    <p class="muted" id="app-meta"></p>
+    <p>An app is requesting access to your AI Wallet. Set a per-app spend cap — the app cannot charge beyond it.</p>
+
+    <div>
+      <strong>Requested scopes:</strong>
+      <ul class="scopes" id="scopes"></ul>
+    </div>
+
+    <label for="spend">Spend cap (USD, optional)</label>
+    <input id="spend" type="number" min="0" step="0.01" placeholder="e.g. 5.00" />
+
+    <label for="period">Reset period</label>
+    <select id="period">
+      <option value="monthly">Monthly</option>
+      <option value="lifetime">Lifetime</option>
+    </select>
+
+    <p class="error" id="error"></p>
+    <button id="approve" disabled>Approve &amp; Connect</button>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const token = (params.get("token") || localStorage.getItem("uaw_jwt") || "");
+    if (token) localStorage.setItem("uaw_jwt", token);
+
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+
+    const desc = {
+      client_id: params.get("client_id"),
+      redirect_uri: params.get("redirect_uri"),
+      response_type: params.get("response_type") || "code",
+      state: params.get("state"),
+      scope: params.get("scope"),
+      code_challenge: params.get("code_challenge"),
+      code_challenge_method: params.get("code_challenge_method") || "S256",
+    };
+
+    const errEl = document.getElementById("error");
+    const btn = document.getElementById("approve");
+
+    async function loadDescriptor() {
+      if (!desc.client_id || !desc.redirect_uri || !token) {
+        errEl.textContent = "Missing client_id, redirect_uri, or user session.";
+        return;
+      }
+      try {
+        const qs = new URLSearchParams(desc).toString();
+        const res = await fetch("/oauth/authorize?" + qs, { headers });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          errEl.textContent = body?.detail?.error?.message || body?.error || "Authorization request rejected.";
+          return;
+        }
+        const data = await res.json();
+        document.getElementById("app-name").textContent = "Connect \"" + data.app_name + "\" to AI Wallet";
+        document.getElementById("app-meta").textContent = "client_id: " + data.client_id;
+        const ul = document.getElementById("scopes");
+        data.requested_scopes.forEach((s) => {
+          const li = document.createElement("li");
+          li.textContent = s;
+          ul.appendChild(li);
+        });
+        btn.disabled = false;
+      } catch (e) {
+        errEl.textContent = "Failed to load authorization details.";
+      }
+    }
+
+    btn.addEventListener("click", async () => {
+      errEl.textContent = "";
+      btn.disabled = true;
+      const spendUsd = parseFloat(document.getElementById("spend").value);
+      const body = {
+        ...desc,
+        spend_limit_microdollars: isNaN(spendUsd) ? null : Math.round(spendUsd * 1_000_000),
+        reset_period: document.getElementById("period").value,
+      };
+      try {
+        const res = await fetch("/oauth/authorize/consent", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const r = await res.json().catch(() => ({}));
+          errEl.textContent = r?.detail?.error?.message || r?.error || "Consent failed.";
+          btn.disabled = false;
+          return;
+        }
+        const data = await res.json();
+        window.location.href = data.redirect_uri;
+      } catch (e) {
+        errEl.textContent = "Consent request failed.";
+        btn.disabled = false;
+      }
+    });
+
+    loadDescriptor();
+  </script>
+</body>
+</html>
