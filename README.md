@@ -156,8 +156,8 @@ Build order is **sequential** — ledger first, then deposits, auth, fast/slow p
 | **1** | Immutable Ledger | PostgreSQL, BigInt microdollars, append-only `ledger_entries`, balance CRUD | **Foundation done** |
 | **2** | Inbound Gateway | Stripe Checkout, webhooks, DEPOSIT credits to master pool | **Mostly done** |
 | **3** | Handshake & Auth | OAuth2 Authorization Code + PKCE / OIDC, Google login, per-app allowances, delegated gateway tokens | **Done** |
-| **4** | Ingestion Engine | Redis pre-auth (`/authorize`), message queue, async usage API | **Planned** |
-| **5** | Billing Worker | Queue consumer, rating + markup, atomic USAGE writes, Redis limiter | **Partial** (sync path) |
+| **4** | Ingestion Engine | Redis `/v1/authorize` (atomic check-and-hold), Redis Streams usage queue, `POST /v1/usage` → 202 | **Done** |
+| **5** | Billing Worker | Stream consumer, rating + markup, atomic USAGE writes, idempotent settle, Redis-gated monthly spend limit, cache revalidation/eviction, worker DLQ | **Done** |
 | **6** | Client SDK | `ai-wallet-node`: `authorize()`, batched `charge()`, 402 handling | **Not started** |
 | **7** | Batch Settlement | Stripe Connect, nightly CRON, aggregate + payout + reconcile | **Not started** |
 
@@ -169,6 +169,7 @@ Build order is **sequential** — ledger first, then deposits, auth, fast/slow p
 | **Task 11 — Testing & sandbox** | **Complete** |
 | **Task 12 — Minimal deploy & observability** | **Complete** |
 | Task 2 — Identity layer (OAuth2/OIDC + Google login + delegated app tokens + per-app allowances) | Complete |
+| Task 7/8 — Gateway ingestion + async metering (Phase 4 fast path + Phase 5 billing worker + Phase 5 hardening: monthly spend limit, cache revalidation, DLQ) | Complete |
 
 ## Quick start (Task 11 sandbox + Task 12 deploy)
 
@@ -211,7 +212,8 @@ services/
   app/          # FastAPI entry, /health, request logging middleware
   shared/       # config, DB (sync + async), SQLAlchemy models, logging
   wallet/       # auth, keys, ledger, payments (testable core)
-  gateway/      # access control, mock provider
+  gateway/      # access control, mock provider, balance_cache, usage_queue,
+                # authorize (fast path), worker (billing), rate limiting
   pricing/      # charge calculation
 tests/          # unit + integration tests, CI-covered
 scripts/        # sandbox seed
@@ -227,6 +229,15 @@ docker-compose.yml
 
 Aligned with [Implementation Phases](./docs/07-implementation-phases.md):
 
-1. **Phase 4** — Redis `/authorize` endpoint and message queue for usage ingestion
-2. **Phase 5** — Background billing worker (decouple from sync gateway path)
-3. **Phase 6–7** — `ai-wallet-node` SDK and Stripe Connect batch settlement
+1. **Phase 6** — `ai-wallet-node` client SDK: `authorize()`, batched in-memory `charge()` with periodic flush to `POST /v1/usage`, clean 402 handling mid-stream
+2. **Phase 7** — Stripe Connect batch settlement: nightly CRON, aggregate uncleared USAGE per partner, single transfer, reconcile to `CLEARED`
+
+### Running the billing worker
+
+```powershell
+# In-process (dev) — set WORKER_ENABLED=true in .env, then:
+docker compose up --build
+
+# Standalone (prod) — one or more replicas:
+python -m services.gateway.worker
+```

@@ -65,12 +65,12 @@ Decouple fast token streaming from slow database writes.
 
 | Step | Requirement | Repo status | Location |
 |------|-------------|-------------|----------|
-| 4.1 | Redis ultra-fast cache | **Done** | `services/shared/redis_client.py`, health check |
-| 4.2 | `POST /api/wallet/authorize` — Redis balance + allowance, &lt;5ms budget, 200 or 402 | **Not started** | Gateway does sync balance/hold today; dedicated authorize route TBD |
-| 4.3 | Durable message broker (Kafka, RabbitMQ, or Redis Streams) | **Not started** | MVP uses sync/async in-process metering |
-| 4.4 | Usage endpoint: fire-and-forget push to queue | **Partial** | `services/app/wallet/usage_routes.py` — direct path, no queue yet |
+| 4.1 | Redis ultra-fast cache | **Done** | `services/shared/redis_client.py`, `services/gateway/balance_cache.py`, health check |
+| 4.2 | `POST /v1/authorize` — Redis balance + allowance, hold, 200 or 402 | **Done** | `services/gateway/authorize.py`, `services/app/gateway/authorize_routes.py` |
+| 4.3 | Durable message broker (Redis Streams) | **Done** | `services/gateway/usage_queue.py` (stream `uaw:usage:events`, group `billing`) |
+| 4.4 | Usage endpoint: fire-and-forget push to queue | **Done** | `POST /v1/usage` → 202 Accepted, idempotent via `uaw:usage:idem:*` |
 
-**Exit criteria:** Authorize returns in &lt;5ms from Redis; usage POST returns 202 immediately; events land in queue.
+**Exit criteria:** Authorize returns from Redis (Lua-atomic check-and-hold); usage POST returns 202 immediately and events land in the stream; a minimal billing worker (`services/gateway/worker.py`) drains the stream and writes the ledger. Verified by `tests/unit/test_balance_cache.py`, `tests/unit/test_usage_queue.py`, `tests/unit/test_authorize.py`, `tests/integration/test_authorize_api.py`, `tests/integration/test_usage_ingestion_api.py`, `tests/integration/test_billing_worker.py`.
 
 ---
 
@@ -80,12 +80,12 @@ Background engine: raw tokens → financial charges → immutable ledger.
 
 | Step | Requirement | Repo status | Location |
 |------|-------------|-------------|----------|
-| 5.1 | Queue consumer (background worker) | **Not started** | Reference: LiteLLM `db_spend_update_writer` pattern |
+| 5.1 | Queue consumer (background worker) | **Done** (minimal, embeddable) | `services/gateway/worker.py` (`run_once` / `run_loop`, `python -m services.gateway.worker`) |
 | 5.2 | Rating: base token cost + application markup | **Done** | `services/pricing/engine.py`, `services/gateway/billing.py` |
-| 5.3 | Atomic write: deduct balance, update allowance, insert USAGE | **Done** (sync path) | `services/wallet/ledger.py`, `services/gateway/service.py` |
-| 5.4 | Limiter: zero balance/allowance → block Redis pre-auth | **Partial** | DB limits enforced; Redis session block TBD |
+| 5.3 | Atomic write: deduct balance, update allowance, insert USAGE | **Done** | `services/wallet/usage.py` (`settle_usage_direct` for Redis-hold path; `settle_usage` for DB-hold fallback) |
+| 5.4 | Limiter: zero balance/allowance → block Redis pre-auth | **Done** | Balance + allowance + **wallet monthly spend limit** checked atomically on `/v1/authorize` via the `_PLACE_HOLD_LUA` script (`balance_cache.place_hold_checked`); worker keeps the Redis `monthly_spent` projection in sync (`incr_monthly_spent`); async settle tags soft overage (`spend_limit_overage` metadata) |
 
-**Exit criteria:** Worker drains queue without duplicate charges; allowance and wallet stay consistent under concurrency.
+**Exit criteria:** Worker drains the queue without duplicate charges; allowance and wallet stay consistent under concurrency (idempotent on `request_id` + ledger idempotency key). Balance cache revalidates from Postgres when stale (preserving active holds) and idle wallets self-evict via TTL. Poison messages are moved to `uaw:usage:dlq` after `WORKER_MAX_DELIVERY_ATTEMPTS` and stuck pending entries are reclaimed via `XCLAIM`. Verified by `tests/unit/test_balance_cache.py`, `tests/unit/test_authorize.py`, `tests/unit/test_usage_settle.py`, `tests/integration/test_authorize_api.py`, `tests/integration/test_billing_worker.py`.
 
 ---
 
@@ -145,4 +145,6 @@ Phase 1 (Ledger)
 
 ## Current focus
 
-Per repo status: **Phase 1–3 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement); **Phase 4** (dedicated Redis `/authorize` fast-path route + durable message queue) is next, then **Phase 5–7**.
+Per repo status: **Phase 1–5 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries); **Phase 6** (`ai-wallet-node` client SDK) is next, then **Phase 7** (Stripe Connect batch settlement).
+
+The sync gateway path (`POST /v1/chat/completions`) is retained as a fallback and for clients that don't use the authorize → ingest → worker flow.

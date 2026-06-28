@@ -225,6 +225,11 @@ def process_stripe_topup_webhook(
     payment_intent.status = "succeeded"
     payment_intent.ledger_entry_id = ledger.entry.id
     session.flush()
+    if ledger.created:
+        # Keep the Redis fast-path balance projection in sync with the ledger.
+        from services.gateway import balance_cache
+
+        balance_cache.apply_credit(wallet_id, amount_microdollars)
     return WebhookCreditResult(
         payment_intent=payment_intent,
         ledger=ledger,

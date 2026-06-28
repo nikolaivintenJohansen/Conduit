@@ -72,6 +72,27 @@ class Settings(BaseSettings):
         alias="PARTNER_ADMIN_SECRET",
     )
 
+    # Phase 4 — ingestion engine (Redis fast path + durable stream)
+    usage_stream_name: str = Field(default="uaw:usage:events", alias="USAGE_STREAM_NAME")
+    usage_consumer_group: str = Field(default="billing", alias="USAGE_CONSUMER_GROUP")
+    usage_consumer_name: str = Field(default="worker-1", alias="USAGE_CONSUMER_NAME")
+    usage_idempotency_ttl_seconds: int = Field(
+        default=86_400, alias="USAGE_IDEMPOTENCY_TTL_SECONDS"
+    )
+    worker_enabled: bool = Field(default=False, alias="WORKER_ENABLED")
+    worker_poll_ms: int = Field(default=1000, alias="WORKER_POLL_MS")
+    worker_max_batch: int = Field(default=50, alias="WORKER_MAX_BATCH")
+
+    # Phase 5 hardening — balance-cache revalidation + worker DLQ
+    balance_cache_ttl_seconds: int = Field(default=3600, alias="BALANCE_CACHE_TTL_SECONDS")
+    balance_cache_stale_seconds: int = Field(default=60, alias="BALANCE_CACHE_STALE_SECONDS")
+    balance_cache_revalidate_interval_ms: int = Field(
+        default=30_000, alias="BALANCE_CACHE_REVALIDATE_INTERVAL_MS"
+    )
+    worker_max_delivery_attempts: int = Field(default=5, alias="WORKER_MAX_DELIVERY_ATTEMPTS")
+    worker_claim_idle_ms: int = Field(default=60_000, alias="WORKER_CLAIM_IDLE_MS")
+    usage_dlq_stream_name: str = Field(default="uaw:usage:dlq", alias="USAGE_DLQ_STREAM_NAME")
+
     @property
     def database_url_async(self) -> str:
         url = self.database_url

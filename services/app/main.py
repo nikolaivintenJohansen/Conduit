@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from services.app.dashboard.routes import router as dashboard_router
+from services.app.gateway.authorize_routes import router as authorize_router
 from services.app.gateway.middleware import GatewayResponseHeadersMiddleware
 from services.app.gateway.routes import router as gateway_router
 from services.app.pricing.routes import router as pricing_router
@@ -16,6 +17,7 @@ from services.app.wallet.oauth_routes import router as oauth_router
 from services.app.wallet.routes import router as wallet_router
 from services.app.wallet.topups_routes import router as topups_router
 from services.app.wallet.usage_routes import router as usage_router
+from services.gateway import worker as billing_worker
 from services.shared.config import get_settings
 from services.shared.logging import configure_logging
 from services.shared.middleware import RequestLoggingMiddleware
@@ -25,7 +27,17 @@ from services.shared.middleware import RequestLoggingMiddleware
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.log_level, settings.app_env)
+    worker_task = None
+    if settings.worker_enabled:
+        import asyncio
+
+        async def _run_worker():
+            await asyncio.to_thread(billing_worker.run_loop)
+
+        worker_task = asyncio.create_task(_run_worker())
     yield
+    if worker_task is not None:
+        worker_task.cancel()
 
 
 app = FastAPI(title="Universal AI Wallet", version="0.1.0", lifespan=lifespan)
@@ -44,3 +56,4 @@ app.include_router(oauth_router)
 app.include_router(pricing_router)
 app.include_router(dashboard_router)
 app.include_router(gateway_router)
+app.include_router(authorize_router)
