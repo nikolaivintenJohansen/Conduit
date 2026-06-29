@@ -254,6 +254,14 @@ def handle_stripe_webhook_event(
     event_type = event["type"]
     event_id = event["id"]
     data_object = event["data"]["object"]
+    # stripe>=12 StripeObject is no longer a dict subclass, so .get()/.items()
+    # don't exist on it. Normalize to a plain dict (recursively) so the rest of
+    # the handler can use dict access. Plain dicts (tests) and SimpleNamespace
+    # objects (tests mocking construct_stripe_event) pass through cleanly too.
+    if hasattr(data_object, "to_dict"):
+        data_object = data_object.to_dict()
+    elif not isinstance(data_object, dict):
+        data_object = vars(data_object)
 
     if event_type == "checkout.session.completed":
         if data_object.get("payment_status") != "paid":
@@ -282,11 +290,7 @@ def handle_stripe_webhook_event(
     if event_type == "account.updated":
         from services.wallet.partner_connect import refresh_partner_for_account
 
-        account_id = (
-            data_object.get("id")
-            if hasattr(data_object, "get")
-            else getattr(data_object, "id", None)
-        )
+        account_id = data_object.get("id")
         if account_id:
             refresh_partner_for_account(session, account_id, data_object)
         return None

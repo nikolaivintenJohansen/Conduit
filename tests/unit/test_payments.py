@@ -81,6 +81,35 @@ def test_handle_checkout_completed_event(db_session, sandbox_wallet):
     assert stored.stripe_payment_intent_id == "pi_completed_1"
 
 
+def test_handle_checkout_completed_event_with_real_stripe_object(db_session, sandbox_wallet):
+    """Regression: stripe>=12 StripeObject is not a dict subclass, so the handler
+    must normalize via to_dict() before calling .get() on the data object."""
+    import stripe
+
+    obj = stripe.StripeObject.construct_from(
+        {
+            "id": "cs_stripeobj_1",
+            "payment_status": "paid",
+            "payment_intent": "pi_stripeobj_1",
+            "metadata": {
+                "wallet_id": str(sandbox_wallet.id),
+                "amount_microdollars": "1500000",
+            },
+        },
+        "sk_test_x",
+    )
+    event = {
+        "id": "evt_stripeobj_1",
+        "type": "checkout.session.completed",
+        "data": {"object": obj},
+    }
+
+    result = handle_stripe_webhook_event(db_session, event)
+    assert result is not None
+    assert result.created
+    assert sandbox_wallet.balance_microdollars == 5_000_000 + 1_500_000
+
+
 def test_handle_checkout_completed_ignores_unpaid(db_session, sandbox_wallet):
     event = {
         "id": "evt_unpaid_1",

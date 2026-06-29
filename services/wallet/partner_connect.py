@@ -139,14 +139,19 @@ def refresh_partner_for_account(
 def _store_capabilities(
     session: Session, partner: PartnerAccount, account_obj
 ) -> PartnerAccount | None:
-    raw_caps = getattr(account_obj, "capabilities", None)
-    capabilities: dict = {}
-    if raw_caps:
-        capabilities = dict(raw_caps) if not isinstance(raw_caps, dict) else dict(raw_caps)
+    # Accept a stripe StripeObject (has to_dict), a plain dict (webhook path),
+    # or a SimpleNamespace (tests) and normalize to a plain dict.
+    if hasattr(account_obj, "to_dict"):
+        account_obj = account_obj.to_dict()
+    elif not isinstance(account_obj, dict):
+        account_obj = vars(account_obj)
+
+    raw_caps = account_obj.get("capabilities") or {}
+    capabilities: dict = dict(raw_caps) if not isinstance(raw_caps, dict) else dict(raw_caps)
     partner.stripe_capabilities_json = {
-        "charges_enabled": bool(getattr(account_obj, "charges_enabled", False)),
-        "details_submitted": bool(getattr(account_obj, "details_submitted", False)),
-        "payouts_enabled": bool(getattr(account_obj, "payouts_enabled", False)),
+        "charges_enabled": bool(account_obj.get("charges_enabled", False)),
+        "details_submitted": bool(account_obj.get("details_submitted", False)),
+        "payouts_enabled": bool(account_obj.get("payouts_enabled", False)),
         "capabilities": capabilities,
     }
     session.flush()
