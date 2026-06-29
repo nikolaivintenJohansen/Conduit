@@ -10,3 +10,10 @@ build/
 .mypy_cache/
 .ruff_cache/
 postgres_data/
+
+# Node / pnpm (Phase 6 SDK)
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.pnpm-store/

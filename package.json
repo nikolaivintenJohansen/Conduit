@@ -1,0 +1,16 @@
+{
+  "name": "universal-ai-wallet",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Universal AI Wallet — prepaid payment and identity layer for AI. Monorepo root.",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "build": "pnpm -r run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -95,12 +95,12 @@ Smart meter package for AI developers.
 
 | Step | Requirement | Repo status | Location |
 |------|-------------|-------------|----------|
-| 6.1 | Node.js / TypeScript package scaffold | **Not started** | Target: `packages/ai-wallet-node` or separate repo |
-| 6.2 | `wallet.authorize()` → pre-auth endpoint | **Not started** | See [README SDK example](../README.md#5-developer-integration--sdk) |
-| 6.3 | `wallet.charge()` — in-memory batch, periodic flush to ingestion API | **Not started** | Fire-and-forget; no blocking on main thread |
-| 6.4 | Clear `402 Payment Required` errors mid-stream | **Not started** | Apps freeze compute when funds exhausted |
+| 6.1 | Node.js / TypeScript package scaffold | **Done** | `packages/ai-wallet-node` (pnpm workspace, tsup dual ESM/CJS + dts, vitest, ESLint/Prettier) |
+| 6.2 | `wallet.authorize()` → pre-auth endpoint | **Done** | `packages/ai-wallet-node/src/authorize.ts`, `src/client.ts` |
+| 6.3 | `wallet.charge()` — in-memory batch, periodic flush to ingestion API | **Done** | `packages/ai-wallet-node/src/batcher.ts` (interval + maxBatchSize + dedupe + exp-backoff retry + backpressure), `src/client.ts` |
+| 6.4 | Clear `402 Payment Required` errors mid-stream | **Done** | `packages/ai-wallet-node/src/errors.ts` (`PaymentRequiredError`), `src/transport.ts` (error-code mapping) |
 
-**Exit criteria:** Partner app integrates SDK in &lt;30 lines; usage batches every N seconds; 402 stops LLM calls cleanly.
+**Exit criteria:** Partner app integrates SDK in &lt;30 lines (see `packages/ai-wallet-node/README.md`); usage batches every N seconds (`flushIntervalMs`, default 5s); 402 stops LLM calls cleanly via `PaymentRequiredError` caught before the provider call. Verified by `packages/ai-wallet-node/test/` (30 vitest specs: authorize, batcher, transport error mapping, end-to-end charge, mid-stream 402). CI Node job in `.github/workflows/ci.yml`.
 
 ---
 
@@ -145,6 +145,6 @@ Phase 1 (Ledger)
 
 ## Current focus
 
-Per repo status: **Phase 1–5 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries); **Phase 6** (`ai-wallet-node` client SDK) is next, then **Phase 7** (Stripe Connect batch settlement).
+Per repo status: **Phase 1–6 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries; and Phase 6: the `ai-wallet-node` TypeScript SDK — `authorize()`, batched fire-and-forget `charge()` with periodic/size/dedupe/retry/backpressure flush to `POST /v1/usage`, and clean `402` mid-stream via `PaymentRequiredError`); **Phase 7** (Stripe Connect batch settlement) is next.
 
 The sync gateway path (`POST /v1/chat/completions`) is retained as a fallback and for clients that don't use the authorize → ingest → worker flow.

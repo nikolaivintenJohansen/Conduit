@@ -279,4 +279,16 @@ def handle_stripe_webhook_event(
         mark_payment_failed(session, stripe_payment_intent_id=data_object["id"])
         return None
 
+    if event_type == "account.updated":
+        from services.wallet.partner_connect import refresh_partner_for_account
+
+        account_id = (
+            data_object.get("id")
+            if hasattr(data_object, "get")
+            else getattr(data_object, "id", None)
+        )
+        if account_id:
+            refresh_partner_for_account(session, account_id, data_object)
+        return None
+
     return None

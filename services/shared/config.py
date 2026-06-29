@@ -93,6 +93,20 @@ class Settings(BaseSettings):
     worker_claim_idle_ms: int = Field(default=60_000, alias="WORKER_CLAIM_IDLE_MS")
     usage_dlq_stream_name: str = Field(default="uaw:usage:dlq", alias="USAGE_DLQ_STREAM_NAME")
 
+    # Phase 7 — batch settlement (Stripe Connect payouts)
+    settlement_enabled: bool = Field(default=False, alias="SETTLEMENT_ENABLED")
+    settlement_cron: str = Field(default="0 0 * * *", alias="SETTLEMENT_CRON")
+    settlement_min_payout_microdollars: int = Field(
+        default=1_000_000, alias="SETTLEMENT_MIN_PAYOUT_MICRODOLLARS"
+    )
+    settlement_lookback_days: int = Field(default=0, alias="SETTLEMENT_LOOKBACK_DAYS")
+    settlement_platform_wallet_id: str | None = Field(
+        default=None, alias="SETTLEMENT_PLATFORM_WALLET_ID"
+    )
+    settlement_poll_interval_seconds: float = Field(
+        default=3600.0, alias="SETTLEMENT_POLL_INTERVAL_SECONDS"
+    )
+
     @property
     def database_url_async(self) -> str:
         url = self.database_url

@@ -158,7 +158,7 @@ Build order is **sequential** — ledger first, then deposits, auth, fast/slow p
 | **3** | Handshake & Auth | OAuth2 Authorization Code + PKCE / OIDC, Google login, per-app allowances, delegated gateway tokens | **Done** |
 | **4** | Ingestion Engine | Redis `/v1/authorize` (atomic check-and-hold), Redis Streams usage queue, `POST /v1/usage` → 202 | **Done** |
 | **5** | Billing Worker | Stream consumer, rating + markup, atomic USAGE writes, idempotent settle, Redis-gated monthly spend limit, cache revalidation/eviction, worker DLQ | **Done** |
-| **6** | Client SDK | `ai-wallet-node`: `authorize()`, batched `charge()`, 402 handling | **Not started** |
+| **6** | Client SDK | `ai-wallet-node`: `authorize()`, batched `charge()`, 402 handling | **Done** |
 | **7** | Batch Settlement | Stripe Connect, nightly CRON, aggregate + payout + reconcile | **Not started** |
 
 ## Status
@@ -229,7 +229,7 @@ docker-compose.yml
 
 Aligned with [Implementation Phases](./docs/07-implementation-phases.md):
 
-1. **Phase 6** — `ai-wallet-node` client SDK: `authorize()`, batched in-memory `charge()` with periodic flush to `POST /v1/usage`, clean 402 handling mid-stream
+1. **Phase 6** — `ai-wallet-node` client SDK: `authorize()`, batched in-memory `charge()` with periodic flush to `POST /v1/usage`, clean 402 handling mid-stream — **complete** (see `packages/ai-wallet-node/`)
 2. **Phase 7** — Stripe Connect batch settlement: nightly CRON, aggregate uncleared USAGE per partner, single transfer, reconcile to `CLEARED`
 
 ### Running the billing worker

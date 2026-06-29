@@ -175,6 +175,9 @@ class PartnerAccount(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, default="active")
     default_platform_fee_bps: Mapped[int] = mapped_column(Integer, nullable=False, default=500)
     stripe_connect_id: Mapped[str | None] = mapped_column(Text)
+    stripe_capabilities_json: Mapped[dict] = mapped_column(
+        "stripe_capabilities", JSONB, nullable=False, default=dict
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -211,6 +214,34 @@ class PaymentIntent(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class SettlementBatch(Base):
+    __tablename__ = "settlement_batches"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    partner_account_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("partner_accounts.id"), nullable=False
+    )
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    gross_usage_microdollars: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    platform_fee_microdollars: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    partner_payout_microdollars: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    provider_cost_microdollars: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    partner_margin_microdollars: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reserved_event_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), nullable=False, default=list
+    )
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    stripe_transfer_id: Mapped[str | None] = mapped_column(Text, unique=True)
+    idempotency_key: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    ledger_entry_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("ledger_entries.id"))
+    error_message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Session(Base):
     __tablename__ = "sessions"
 
@@ -244,6 +275,10 @@ class UsageEvent(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, default="completed")
     metadata_json: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    settlement_status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    settlement_batch_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("settlement_batches.id", ondelete="SET NULL")
+    )
 
 
 class AppRegistration(Base):
