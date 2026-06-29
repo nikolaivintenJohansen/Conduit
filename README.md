@@ -159,7 +159,7 @@ Build order is **sequential** — ledger first, then deposits, auth, fast/slow p
 | **4** | Ingestion Engine | Redis `/v1/authorize` (atomic check-and-hold), Redis Streams usage queue, `POST /v1/usage` → 202 | **Done** |
 | **5** | Billing Worker | Stream consumer, rating + markup, atomic USAGE writes, idempotent settle, Redis-gated monthly spend limit, cache revalidation/eviction, worker DLQ | **Done** |
 | **6** | Client SDK | `ai-wallet-node`: `authorize()`, batched `charge()`, 402 handling | **Done** |
-| **7** | Batch Settlement | Stripe Connect, nightly CRON, aggregate + payout + reconcile | **Not started** |
+| **7** | Batch Settlement | Stripe Connect onboarding + `account.updated` capability tracking, nightly UTC-midnight scheduler + external cron, atomic per-partner event reservation, single idempotent transfer per batch, append-only ledger reconciliation | **Done** |
 
 ## Status
 
@@ -170,6 +170,7 @@ Build order is **sequential** — ledger first, then deposits, auth, fast/slow p
 | **Task 12 — Minimal deploy & observability** | **Complete** |
 | Task 2 — Identity layer (OAuth2/OIDC + Google login + delegated app tokens + per-app allowances) | Complete |
 | Task 7/8 — Gateway ingestion + async metering (Phase 4 fast path + Phase 5 billing worker + Phase 5 hardening: monthly spend limit, cache revalidation, DLQ) | Complete |
+| **Task 8 — Phase 7 batch settlement** (Stripe Connect onboarding + capability tracking, nightly scheduler + external cron, atomic event reservation, idempotent per-batch transfer, ledger reconciliation) | **Complete** |
 
 ## Quick start (Task 11 sandbox + Task 12 deploy)
 
@@ -211,7 +212,7 @@ See [`tests/sandbox/README.md`](./tests/sandbox/README.md) for demo credentials 
 services/
   app/          # FastAPI entry, /health, request logging middleware
   shared/       # config, DB (sync + async), SQLAlchemy models, logging
-  wallet/       # auth, keys, ledger, payments (testable core)
+  wallet/       # auth, keys, ledger, payments, partner_connect, settlement (testable core)
   gateway/      # access control, mock provider, balance_cache, usage_queue,
                 # authorize (fast path), worker (billing), rate limiting
   pricing/      # charge calculation
@@ -230,7 +231,21 @@ docker-compose.yml
 Aligned with [Implementation Phases](./docs/07-implementation-phases.md):
 
 1. **Phase 6** — `ai-wallet-node` client SDK: `authorize()`, batched in-memory `charge()` with periodic flush to `POST /v1/usage`, clean 402 handling mid-stream — **complete** (see `packages/ai-wallet-node/`)
-2. **Phase 7** — Stripe Connect batch settlement: nightly CRON, aggregate uncleared USAGE per partner, single transfer, reconcile to `CLEARED`
+2. **Phase 7** — Stripe Connect batch settlement: partner onboarding + `account.updated` capability tracking, nightly UTC-midnight scheduler + `scripts/run_settlement.py` external cron, atomic per-partner event reservation, single idempotent Stripe transfer per batch, append-only ledger reconciliation to `CLEARED` — **complete** (see `services/wallet/settlement.py`, `services/wallet/partner_connect.py`, `services/wallet/settlement_scheduler.py`, `services/app/wallet/settlement_routes.py`)
+
+### Running the settlement scheduler
+
+```powershell
+# In-process (dev) — set SETTLEMENT_ENABLED=true in .env, then:
+docker compose up --build
+
+# Standalone scheduler (prod) — one replica:
+python -m services.wallet.settlement_scheduler
+
+# External cron / k8s CronJob — one sweep and exit:
+python -m scripts.run_settlement
+python -m scripts.run_settlement --partner cursor
+```
 
 ### Running the billing worker
 

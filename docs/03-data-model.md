@@ -118,6 +118,7 @@ Immutable financial log. No updates — corrections are reversing entries.
 | `hold_release` | + available | Request failed / over-estimate |
 | `refund` | + | Admin adjustment |
 | `adjustment` | ± | Manual correction |
+| `settlement` | audit | Phase 7 partner payout (platform wallet anchor row; no balance mutation) |
 
 Every entry has `idempotency_key` (unique per wallet) for safe retries.
 
@@ -231,6 +232,20 @@ Stripe checkout session tracking.
 - `stripe_payment_intent_id`
 - `amount_microdollars`, `status`
 - Links to `ledger_entries` on `succeeded`
+
+### settlement_batches (Phase 7 — implemented)
+
+One payout record per partner per settlement run.
+
+- `partner_account_id`, `period_start`, `period_end`
+- `gross_usage_microdollars`, `platform_fee_microdollars`, `partner_payout_microdollars` (= gross − fee)
+- `provider_cost_microdollars`, `partner_margin_microdollars`, `event_count`
+- `reserved_event_ids` (UUID[]) — snapshot of claimed usage events
+- `status` (`pending` | `cleared` | `failed`), `stripe_transfer_id` (UNIQUE), `idempotency_key` (UNIQUE per partner/day)
+- `ledger_entry_id` → the append-only `settlement` ledger row on the platform wallet
+- `error_message`, `cleared_at`
+
+`usage_events` carries `settlement_status` (`pending` | `reserved` | `cleared` | `failed`) + `settlement_batch_id`, so a payout never claims an event twice. Reservation is an atomic `pending → reserved` update; reconciliation flips `reserved → cleared`. A failed transfer releases reserved events back to `pending` for re-attempt (same idempotency key reused). Schema: `schemas/003_settlement.sql`.
 
 ---
 

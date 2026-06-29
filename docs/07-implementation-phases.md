@@ -110,13 +110,13 @@ Bulk payouts to avoid per-micro-transaction card fees.
 
 | Step | Requirement | Repo status | Location |
 |------|-------------|-------------|----------|
-| 7.1 | Stripe Connect onboarding; store `stripe_connect_id` | **Partial** | `partner_accounts.stripe_connect_id` column exists |
-| 7.2 | CRON (nightly UTC midnight) | **Not started** | `scripts/` or worker service |
-| 7.3 | Aggregate uncleared USAGE per AI application | **Not started** | Add `settlement_status` on usage/ledger when built |
-| 7.4 | Single Stripe Connect transfer per partner batch | **Not started** | Stage 4 — see `ai_wallet_tasks.txt` task 8 |
-| 7.5 | Reconcile: mark transactions `CLEARED` | **Not started** | Idempotent payout + ledger `settlement` entries |
+| 7.1 | Stripe Connect onboarding; store `stripe_connect_id` | **Done** | `services/wallet/partner_connect.py` (Express accounts + AccountLink), `services/app/wallet/app_registrations_routes.py` (`/connect/onboard`, `/connect/status`), `account.updated` webhook in `services/wallet/payments.py` refreshes `partner_accounts.stripe_capabilities` |
+| 7.2 | CRON (nightly UTC midnight) | **Done** | `services/wallet/settlement_scheduler.py` (in-process, next-UTC-midnight), `scripts/run_settlement.py` (external cron / k8s CronJob), `settlement` service in `docker-compose.yml` |
+| 7.3 | Aggregate uncleared USAGE per AI application | **Done** | `services/wallet/settlement.py` `aggregate_pending` + `reserve_events` (atomic `pending → reserved` claim on `usage_events.settlement_status`) |
+| 7.4 | Single Stripe Connect transfer per partner batch | **Done** | `services/wallet/settlement.py` `execute_transfer` (one `stripe.Transfer.create` per batch, idempotency-keyed) |
+| 7.5 | Reconcile: mark transactions `CLEARED` | **Done** | `reconcile_cleared` flips `reserved → cleared`, writes append-only `ledger_entries.settlement` audit row on the platform wallet, sets `settlement_batches.status = cleared` + `stripe_transfer_id` |
 
-**Exit criteria:** Nightly job pays Cursor $15,400 from aggregated usage; no double payout; audit trail links transfer to rows.
+**Exit criteria:** Nightly job pays Cursor $15,400 from aggregated usage; no double payout; audit trail links transfer to rows. Verified by `tests/unit/test_settlement.py`, `tests/unit/test_partner_connect.py`, `tests/integration/test_settlement_api.py` (aggregation, clear + ledger write, idempotent re-run with no double payout, failed-transfer release-and-retry, below-threshold / no-connect / empty skips, multi-partner sweep, partner filter, Connect onboarding reuse, `account.updated` webhook capability refresh). Schema in `schemas/003_settlement.sql`.
 
 ---
 
@@ -145,6 +145,6 @@ Phase 1 (Ledger)
 
 ## Current focus
 
-Per repo status: **Phase 1–6 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries; and Phase 6: the `ai-wallet-node` TypeScript SDK — `authorize()`, batched fire-and-forget `charge()` with periodic/size/dedupe/retry/backpressure flush to `POST /v1/usage`, and clean `402` mid-stream via `PaymentRequiredError`); **Phase 7** (Stripe Connect batch settlement) is next.
+Per repo status: **Phase 1–7 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries; Phase 6: the `ai-wallet-node` TypeScript SDK — `authorize()`, batched fire-and-forget `charge()` with periodic/size/dedupe/retry/backpressure flush to `POST /v1/usage`, and clean `402` mid-stream via `PaymentRequiredError`; and Phase 7: Stripe Connect batch settlement — partner onboarding + capability tracking via `account.updated`, nightly UTC-midnight scheduler + external-cron entrypoint, atomic per-partner event reservation, single idempotent Stripe transfer per batch, and append-only ledger reconciliation with no-double-payout guarantees).
 
 The sync gateway path (`POST /v1/chat/completions`) is retained as a fallback and for clients that don't use the authorize → ingest → worker flow.
