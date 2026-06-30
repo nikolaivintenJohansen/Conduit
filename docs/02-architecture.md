@@ -176,7 +176,7 @@ Health: `GET /health` → DB ping, Redis ping, optional provider smoke flag.
 ## 8. Repo layout (target for task 11/12)
 
 ```
-UniversalAiWallet/
+Conduit/
   docs/                 # This folder
   schemas/              # SQL migrations
   openapi/              # API contracts
