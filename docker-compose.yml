@@ -1,10 +1,12 @@
+name: conduit
+
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: uaw
-      POSTGRES_PASSWORD: uaw
-      POSTGRES_DB: uaw
+      POSTGRES_USER: conduit
+      POSTGRES_PASSWORD: conduit
+      POSTGRES_DB: conduit
     ports:
       - "5432:5432"
     volumes:
@@ -14,7 +16,7 @@ services:
       - ./schemas/003_settlement.sql:/docker-entrypoint-initdb.d/003_settlement.sql:ro
       - ./scripts/sandbox_seed.sql:/docker-entrypoint-initdb.d/004_sandbox_seed.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U uaw -d uaw"]
+      test: ["CMD-SHELL", "pg_isready -U conduit -d conduit"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -39,7 +41,7 @@ services:
     environment:
       APP_ENV: development
       LOG_LEVEL: debug
-      DATABASE_URL: postgresql://uaw:uaw@postgres:5432/uaw
+      DATABASE_URL: postgresql://conduit:conduit@postgres:5432/conduit
       REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
@@ -68,7 +70,7 @@ services:
     environment:
       APP_ENV: development
       LOG_LEVEL: debug
-      DATABASE_URL: postgresql://uaw:uaw@postgres:5432/uaw
+      DATABASE_URL: postgresql://conduit:conduit@postgres:5432/conduit
       REDIS_URL: redis://redis:6379/0
       WORKER_MAX_BATCH: "50"
       WORKER_POLL_MS: "1000"
@@ -88,7 +90,7 @@ services:
     environment:
       APP_ENV: development
       LOG_LEVEL: debug
-      DATABASE_URL: postgresql://uaw:uaw@postgres:5432/uaw
+      DATABASE_URL: postgresql://conduit:conduit@postgres:5432/conduit
       REDIS_URL: redis://redis:6379/0
       SETTLEMENT_ENABLED: "true"
     depends_on:

@@ -39,7 +39,7 @@ from services.shared.models import (
 logger = logging.getLogger(__name__)
 
 SETTLEMENT_IDEMPOTENCY_PREFIX = "settle:"
-PLATFORM_USER_EMAIL = "platform@ai-wallet.internal"
+PLATFORM_USER_EMAIL = "platform@conduit.internal"
 
 
 class SettlementError(Exception):

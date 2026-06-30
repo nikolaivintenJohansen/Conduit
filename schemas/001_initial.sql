@@ -1,4 +1,4 @@
--- Universal AI Wallet — initial schema (Task 1)
+-- Conduit — initial schema (Task 1)
 -- Apply with your migration tool of choice (Alembic, dbmate, etc.)
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

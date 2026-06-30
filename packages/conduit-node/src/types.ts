@@ -1,9 +1,9 @@
-import type { AIWalletError } from './errors.js';
+import type { ConduitError } from './errors.js';
 
 export type FetchLike = typeof fetch;
 
-export interface AIWalletConfig {
-  /** Bearer credential: an sk-uaw-* virtual key OR a delegated OAuth app access token. */
+export interface ConduitConfig {
+  /** Bearer credential: an sk-conduit-* virtual key OR a delegated OAuth app access token. */
   apiKey: string;
   /** Gateway base URL including the /v1 prefix. Default: https://api.example.com/v1 */
   baseUrl?: string;
@@ -24,7 +24,7 @@ export interface AIWalletConfig {
   /** Called when buffered events are dropped due to backpressure. */
   onDrop?: (events: UsageEvent[], reason: 'buffer_full' | 'max_retries') => void;
   /** Called when a flush attempt fails after exhausting retries. */
-  onError?: (error: AIWalletError, context: { events: UsageEvent[] }) => void;
+  onError?: (error: ConduitError, context: { events: UsageEvent[] }) => void;
 }
 
 export interface Logger {

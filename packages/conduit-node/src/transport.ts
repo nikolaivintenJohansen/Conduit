@@ -1,5 +1,5 @@
 import {
-  AIWalletError,
+  ConduitError,
   ForbiddenError,
   NetworkError,
   PaymentRequiredError,
@@ -81,7 +81,7 @@ export class Transport {
     try {
       return await this.post<T>(path, body, requestId);
     } catch (err) {
-      if (err instanceof AIWalletError && isRetriable(err)) {
+      if (err instanceof ConduitError && isRetriable(err)) {
         return null;
       }
       throw err;
@@ -96,7 +96,7 @@ export async function request<T>(opts: RequestOptions): Promise<ParsedResponse<T
     'Content-Type': 'application/json',
     Accept: 'application/json',
     'User-Agent': USER_AGENT,
-    'X-UAW-Client': CLIENT_HEADER,
+    'X-Conduit-Client': CLIENT_HEADER,
   };
   if (opts.requestId) headers['X-Request-Id'] = opts.requestId;
 
@@ -162,7 +162,7 @@ async function parseError(response: Response): Promise<BackendErrorEnvelope> {
   };
 }
 
-function mapError(status: number, env: BackendErrorEnvelope, requestId?: string): AIWalletError {
+function mapError(status: number, env: BackendErrorEnvelope, requestId?: string): ConduitError {
   const code = env.error.code;
   const message = env.error.message ?? code;
   const rid = env.error.request_id ?? requestId;
@@ -177,11 +177,11 @@ function mapError(status: number, env: BackendErrorEnvelope, requestId?: string)
       return new RateLimitError(message, { code, requestId: rid });
     default:
       if (status >= 500) return new ServerError(message, { code, status, requestId: rid });
-      return new AIWalletError(message, { code, status, requestId: rid });
+      return new ConduitError(message, { code, status, requestId: rid });
   }
 }
 
-export function isRetriable(err: AIWalletError): boolean {
+export function isRetriable(err: ConduitError): boolean {
   if (err instanceof ServerError) return true;
   if (err instanceof NetworkError) return true;
   if (err instanceof TimeoutError) return true;

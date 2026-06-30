@@ -1,9 +1,9 @@
 ================================================================================
-UNIVERSAL AI WALLET — PROJECT STAGES
+CONDUIT             — PROJECT STAGES
 ================================================================================
 
 ONE-SENTENCE PITCH
-A universal AI wallet and login system that lets users authenticate once, fund
+Conduit is an AI wallet and login system that lets users authenticate once, fund
 one balance, and consume AI across many apps and model providers, while partner
 companies set per-token pricing and keep margin.
 

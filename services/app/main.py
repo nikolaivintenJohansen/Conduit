@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
         settlement_task.cancel()
 
 
-app = FastAPI(title="Universal AI Wallet", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Conduit", version="0.1.0", lifespan=lifespan)
 app.add_middleware(GatewayResponseHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.include_router(health_router)

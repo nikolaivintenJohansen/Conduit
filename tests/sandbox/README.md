@@ -6,7 +6,7 @@ Use after `docker compose up -d` and `python scripts/seed_sandbox.py`.
 |------|-------|
 | Email | `sandbox@example.com` |
 | Password | `sandbox123` |
-| API key | `sk-uaw-sandbox00000000000000000000000001` |
+| API key | `sk-conduit-sandbox00000000000000000000000001` |
 | Starting balance | $10.00 |
 
 ## Local stack
@@ -23,11 +23,11 @@ uvicorn services.app.main:app --reload
 
 ## Test database
 
-Tests use `uaw_test` by default. Create it once:
+Tests use `conduit_test` by default. Create it once:
 
 ```powershell
-docker compose exec postgres psql -U uaw -d uaw -c "CREATE DATABASE uaw_test;"
-$env:TEST_DATABASE_URL = "postgresql+psycopg://uaw:uaw@localhost:5432/uaw_test"
+docker compose exec postgres psql -U conduit -d conduit -c "CREATE DATABASE conduit_test;"
+$env:TEST_DATABASE_URL = "postgresql+psycopg://conduit:conduit@localhost:5432/conduit_test"
 psql $env:TEST_DATABASE_URL -f schemas/001_initial.sql
 pytest -v
 ```

@@ -12,9 +12,9 @@ the source of truth; this cache is a hot read-side projection that is:
 
 State model:
 
-  * ``uaw:walletbal:{wallet_id}``  HASH  -> balance_microdollars, held_microdollars,
+  * ``conduit:walletbal:{wallet_id}``  HASH  -> balance_microdollars, held_microdollars,
     spend_limit_microdollars, monthly_spent_microdollars, spend_period, as_of_ms
-  * ``uaw:hold:{request_id}``      HASH  -> wallet_id, estimated_max_microdollars,
+  * ``conduit:hold:{request_id}``      HASH  -> wallet_id, estimated_max_microdollars,
     model, app_install_id, ... (TTL = hold_expiry_seconds)
 
 ``place_hold`` uses a Lua script so the check-and-increment is atomic across
@@ -97,11 +97,11 @@ return 1
 
 
 def _wallet_key(wallet_id) -> str:
-    return f"uaw:walletbal:{wallet_id}"
+    return f"conduit:walletbal:{wallet_id}"
 
 
 def _hold_key(request_id: str) -> str:
-    return f"uaw:hold:{request_id}"
+    return f"conduit:hold:{request_id}"
 
 
 def _current_period() -> str:
@@ -469,8 +469,8 @@ def reset_balance_cache() -> None:
     _mem_holds.clear()
     if _redis_client is not None:
         try:
-            _scan_delete(_redis_client, "uaw:walletbal:*")
-            _scan_delete(_redis_client, "uaw:hold:*")
+            _scan_delete(_redis_client, "conduit:walletbal:*")
+            _scan_delete(_redis_client, "conduit:hold:*")
         except Exception:
             pass
         _redis_client.close()
@@ -497,7 +497,7 @@ def revalidate_sweep(session: Session, *, batch_size: int = 50) -> int:
     scanned = 0
     cursor = 0
     while scanned < batch_size:
-        cursor, keys = client.scan(cursor=cursor, match="uaw:walletbal:*", count=batch_size)
+        cursor, keys = client.scan(cursor=cursor, match="conduit:walletbal:*", count=batch_size)
         for key in keys:
             if scanned >= batch_size:
                 break

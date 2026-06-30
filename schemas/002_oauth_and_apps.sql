@@ -1,4 +1,4 @@
--- Universal AI Wallet — Phase 3: OAuth2/OIDC + app installs (Task 2 / Stage 3)
+-- Conduit — Phase 3: OAuth2/OIDC + app installs (Task 2 / Stage 3)
 -- Extends 001_initial.sql. Apply after 001_initial.sql with your migration tool.
 --
 -- Money columns stay microdollars (BigInt, $1.00 = 1_000_000) to match the

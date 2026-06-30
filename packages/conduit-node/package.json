@@ -1,7 +1,7 @@
 {
-  "name": "@ai-wallet/sdk",
+  "name": "@conduit/sdk",
   "version": "0.1.0",
-  "description": "Smart metering SDK for Universal AI Wallet. authorize() pre-auth, batched fire-and-forget charge(), clean 402 handling.",
+  "description": "Smart metering SDK for Conduit. authorize() pre-auth, batched fire-and-forget charge(), clean 402 handling.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,

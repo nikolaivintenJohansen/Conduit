@@ -20,7 +20,7 @@ describe('authorize (Phase 6.2)', () => {
         expires_at_ms: 1234567890,
       },
     });
-    const t = new Transport(BASE, 'sk-uaw-x', 5000, fetch);
+    const t = new Transport(BASE, 'sk-conduit-x', 5000, fetch);
     const res = await authorize(t, { model: 'gpt-4o', maxTokens: 1024, requestId: 'req-abc' });
     expect(res).toEqual({
       authorized: true,

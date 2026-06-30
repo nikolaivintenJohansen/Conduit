@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from "react";
 
-const JWT_KEY = "uaw_jwt";
-const PARTNER_TOKEN_KEY = "uaw_partner_token";
-const PARTNER_SLUG_KEY = "uaw_partner_slug";
+const JWT_KEY = "conduit_jwt";
+const PARTNER_TOKEN_KEY = "conduit_partner_token";
+const PARTNER_SLUG_KEY = "conduit_partner_slug";
 
 type Listener = () => void;
 const listeners = new Set<Listener>();

@@ -23,7 +23,7 @@ function makeSender(): {
   const sender: UsageSender = (events) =>
     new Promise((resolve, reject) => {
       calls.push(events);
-      pending.resolve = () => resolve({ accepted: events.length, duplicated: 0, stream: 'uaw:usage:events', requestIds: events.map((e) => e.request_id) });
+      pending.resolve = () => resolve({ accepted: events.length, duplicated: 0, stream: 'conduit:usage:events', requestIds: events.map((e) => e.request_id) });
       pending.reject = reject;
     });
   return {

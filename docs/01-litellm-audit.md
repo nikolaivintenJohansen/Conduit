@@ -1,6 +1,6 @@
 # LiteLLM Core Audit
 
-Audit of [BerriAI/litellm](https://github.com/BerriAI/litellm) (proxy + SDK) for Universal AI Wallet.  
+Audit of [BerriAI/litellm](https://github.com/BerriAI/litellm) (proxy + SDK) for Conduit.  
 **Strategy:** See [ADR-001](./decisions/ADR-001-litellm-strategy.md) — wrap SDK, own wallet layer.
 
 ---
@@ -76,7 +76,7 @@ We implement partner admin and SSO on our own timeline (tasks 9b, Stage 5).
 
 ### AI Wallet gateway (ours)
 
-1. **Auth** — `sk-uaw-*` → `virtual_keys` (Redis cache → Postgres)
+1. **Auth** — `sk-conduit-*` → `virtual_keys` (Redis cache → Postgres)
 2. **Entitlement** — access group allows model (task 6; MVP: allow-all)
 3. **Balance** — `wallets.available_balance >= estimated_max` or reject 402
 4. **Rate limit** — RPM/TPM per key (Redis)

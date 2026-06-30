@@ -34,7 +34,7 @@ from services.wallet.oauth import create_authorization_code, exchange_code_for_t
 def database_url() -> str:
     return os.environ.get(
         "TEST_DATABASE_URL",
-        "postgresql+psycopg://uaw:uaw@localhost:5432/uaw_test",
+        "postgresql+psycopg://conduit:conduit@localhost:5432/conduit_test",
     )
 
 

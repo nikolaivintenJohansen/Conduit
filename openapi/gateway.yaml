@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: Universal AI Wallet — Gateway API
+  title: Conduit — Gateway API
   version: 1.0.0
-  description: OpenAI-compatible gateway. Authenticate with sk-uaw-* virtual keys.
+  description: OpenAI-compatible gateway. Authenticate with sk-conduit-* virtual keys.
 
 servers:
   - url: https://api.example.com/v1
@@ -36,7 +36,7 @@ paths:
             X-Request-Id:
               schema:
                 type: string
-            X-UAW-Cost-USD:
+            X-Conduit-Cost-USD:
               schema:
                 type: string
           content:
@@ -100,7 +100,7 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: Virtual API key (sk-uaw-...)
+      description: Virtual API key (sk-conduit-...)
 
   schemas:
     ChatCompletionRequest:

@@ -1,4 +1,4 @@
--- Universal AI Wallet — Phase 7: Batch settlement & Stripe Connect payouts
+-- Conduit — Phase 7: Batch settlement & Stripe Connect payouts
 -- Extends 001_initial.sql and 002_oauth_and_apps.sql. Apply after 002.
 --
 -- Money columns stay microdollars (BigInt, $1.00 = 1_000_000).

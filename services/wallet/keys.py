@@ -16,7 +16,7 @@ class AccessGroupNotFoundError(ValueError):
     pass
 
 
-KEY_PREFIX = "sk-uaw-"
+KEY_PREFIX = "sk-conduit-"
 
 
 @dataclass(frozen=True)

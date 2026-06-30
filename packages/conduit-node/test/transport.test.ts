@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Transport } from '../src/transport.js';
 import {
-  AIWalletError,
+  ConduitError,
   ForbiddenError,
   NetworkError,
   PaymentRequiredError,
@@ -15,16 +15,16 @@ import { createMockFetch } from './helpers.js';
 const BASE = 'https://api.example.com/v1';
 
 describe('Transport', () => {
-  it('sends Bearer + User-Agent + X-UAW-Client headers and JSON body', async () => {
+  it('sends Bearer + User-Agent + X-Conduit-Client headers and JSON body', async () => {
     const { fetch, requests } = createMockFetch({ status: 200, body: { ok: true } });
-    const t = new Transport(BASE, 'sk-uaw-test', 5000, fetch);
+    const t = new Transport(BASE, 'sk-conduit-test', 5000, fetch);
     await t.post('/authorize', { model: 'gpt-4o' }, 'req-123');
     const req = requests[0]!;
     expect(req.url).toBe(`${BASE}/authorize`);
-    expect(req.headers['authorization']).toBe('Bearer sk-uaw-test');
+    expect(req.headers['authorization']).toBe('Bearer sk-conduit-test');
     expect(req.headers['x-request-id']).toBe('req-123');
-    expect(req.headers['user-agent']).toMatch(/^ai-wallet-node\//);
-    expect(req.headers['x-uaw-client']).toMatch(/^ai-wallet-node\//);
+    expect(req.headers['user-agent']).toMatch(/^conduit-node\//);
+    expect(req.headers['x-conduit-client']).toMatch(/^conduit-node\//);
     expect(req.body).toEqual({ model: 'gpt-4o' });
   });
 
@@ -110,9 +110,9 @@ describe('Transport', () => {
     await expect(t.post('/authorize', { model: 'x' }, 'rt')).rejects.toBeInstanceOf(TimeoutError);
   });
 
-  it('falls back to generic AIWalletError when envelope missing', async () => {
+  it('falls back to generic ConduitError when envelope missing', async () => {
     const { fetch } = createMockFetch({ status: 418, body: null });
     const t = new Transport(BASE, 'k', 5000, fetch);
-    await expect(t.post('/authorize', { model: 'x' })).rejects.toBeInstanceOf(AIWalletError);
+    await expect(t.post('/authorize', { model: 'x' })).rejects.toBeInstanceOf(ConduitError);
   });
 });

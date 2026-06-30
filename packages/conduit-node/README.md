@@ -1,22 +1,22 @@
-# @ai-wallet/sdk
+# @conduit/sdk
 
-Smart metering SDK for [Universal AI Wallet](../../README.md) — the prepaid payment and identity layer for AI ("MetaMask for AI"). The SDK sits inside a partner app and meters LLM usage: it pre-authorizes a hold on the Redis fast path, then batches and async-flushes actual token usage to the wallet's ingestion endpoint. A `402 Payment Required` mid-stream lets the app freeze compute cleanly when funds are exhausted.
+Smart metering SDK for [Conduit](../../README.md) — the prepaid payment and identity layer for AI ("MetaMask for AI"). The SDK sits inside a partner app and meters LLM usage: it pre-authorizes a hold on the Redis fast path, then batches and async-flushes actual token usage to the wallet's ingestion endpoint. A `402 Payment Required` mid-stream lets the app freeze compute cleanly when funds are exhausted.
 
 ## Install
 
 ```bash
-npm install @ai-wallet/sdk
+npm install @conduit/sdk
 # or
-pnpm add @ai-wallet/sdk
+pnpm add @conduit/sdk
 ```
 
 ## Quick start (< 30 lines)
 
 ```ts
-import { AIWallet, PaymentRequiredError } from '@ai-wallet/sdk';
+import { Conduit, PaymentRequiredError } from '@conduit/sdk';
 import OpenAI from 'openai';
 
-const wallet = new AIWallet({ apiKey: process.env.AI_WALLET_API_KEY });
+const wallet = new Conduit({ apiKey: process.env.CONDUIT_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function chat(prompt: string) {
@@ -45,12 +45,12 @@ await wallet.shutdown();
 
 ## API
 
-### `new AIWallet(config)`
+### `new Conduit(config)`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `apiKey` | `string` | `env.AI_WALLET_API_KEY` | `sk-uaw-*` virtual key **or** a delegated OAuth app access token. Carries identity via `Authorization: Bearer`. |
-| `baseUrl` | `string` | `env.AI_WALLET_BASE_URL` / `https://api.example.com/v1` | Gateway base URL including `/v1`. |
+| `apiKey` | `string` | `env.CONDUIT_API_KEY` | `sk-conduit-*` virtual key **or** a delegated OAuth app access token. Carries identity via `Authorization: Bearer`. |
+| `baseUrl` | `string` | `env.CONDUIT_BASE_URL` / `https://api.example.com/v1` | Gateway base URL including `/v1`. |
 | `flushIntervalMs` | `number` | `5000` | Periodic flush interval for batched `charge()` events. `0` disables the timer. |
 | `maxBatchSize` | `number` | `100` | Flush trigger when the buffer reaches this many events. |
 | `maxBufferSize` | `number` | `10000` | Hard cap; oldest events are dropped via `onDrop` when exceeded. |
@@ -111,7 +111,7 @@ Stop the timer and await a final flush. Call on graceful process shutdown.
 | `TimeoutError` | — | `timeout` | Request exceeded `timeoutMs`. |
 | `NetworkError` | — | `network_error` | DNS / connection failure; retriable for usage flushes. |
 
-All errors extend `AIWalletError` and carry `code`, `status`, and `requestId` (for support / usage lookup).
+All errors extend `ConduitError` and carry `code`, `status`, and `requestId` (for support / usage lookup).
 
 ## Serverless usage
 
@@ -119,7 +119,7 @@ In serverless environments, set `flushIntervalMs: 0` (no background timer) and a
 
 ```ts
 export async function handler(req) {
-  const wallet = new AIWallet({ apiKey, flushIntervalMs: 0 });
+  const wallet = new Conduit({ apiKey, flushIntervalMs: 0 });
   try {
     const auth = await wallet.authorize({ model: 'gpt-4o' });
     // ... call provider, wallet.charge(...) ...
@@ -143,10 +143,10 @@ See [`docs/04-api-contracts.md`](../../docs/04-api-contracts.md) and [`openapi/g
 
 ```bash
 pnpm install
-pnpm --filter @ai-wallet/sdk lint
-pnpm --filter @ai-wallet/sdk typecheck
-pnpm --filter @ai-wallet/sdk test
-pnpm --filter @ai-wallet/sdk build
+pnpm --filter @conduit/sdk lint
+pnpm --filter @conduit/sdk typecheck
+pnpm --filter @conduit/sdk test
+pnpm --filter @conduit/sdk build
 ```
 
 Money is integer microdollars (`$1.00 = 1_000_000`) end-to-end; the SDK never converts to floats.

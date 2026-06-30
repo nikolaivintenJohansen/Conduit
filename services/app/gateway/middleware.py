@@ -11,7 +11,7 @@ class GatewayResponseHeadersMiddleware(BaseHTTPMiddleware):
         cost = getattr(request.state, "gateway_cost_microdollars", None)
         balance = getattr(request.state, "gateway_balance_microdollars", None)
         if cost is not None:
-            response.headers["X-UAW-Cost-USD"] = f"{cost / 1_000_000:.6f}"
+            response.headers["X-Conduit-Cost-USD"] = f"{cost / 1_000_000:.6f}"
         if balance is not None:
-            response.headers["X-UAW-Balance-Remaining-USD"] = f"{balance / 1_000_000:.6f}"
+            response.headers["X-Conduit-Balance-Remaining-USD"] = f"{balance / 1_000_000:.6f}"
         return response

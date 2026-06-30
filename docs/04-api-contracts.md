@@ -2,7 +2,7 @@
 
 Two public surfaces:
 
-1. **Gateway API** — OpenAI-compatible; authenticated with virtual keys (`sk-uaw-*`)
+1. **Gateway API** — OpenAI-compatible; authenticated with virtual keys (`sk-conduit-*`)
 2. **Wallet API** — Account, balance, keys, top-ups; authenticated with session JWT
 
 OpenAPI files: [`openapi/gateway.yaml`](../openapi/gateway.yaml), [`openapi/wallet-api.yaml`](../openapi/wallet-api.yaml)
@@ -15,7 +15,7 @@ OpenAPI files: [`openapi/gateway.yaml`](../openapi/gateway.yaml), [`openapi/wall
 |-------|------|
 | Base URL (gateway) | `https://api.example.com/v1` |
 | Base URL (wallet) | `https://api.example.com/wallet/v1` |
-| Gateway auth | `Authorization: Bearer sk-uaw-...` |
+| Gateway auth | `Authorization: Bearer sk-conduit-...` |
 | Wallet auth | `Authorization: Bearer <jwt>` or session cookie |
 | Idempotency | Header `Idempotency-Key: <uuid>` on mutating wallet endpoints |
 | Request tracing | Header `X-Request-Id` echoed in response; gateway generates if missing |
@@ -42,8 +42,8 @@ OpenAI-compatible. See OpenAPI for full schema.
 | Header | Purpose |
 |--------|---------|
 | `X-Request-Id` | For support / usage lookup |
-| `X-UAW-Cost-USD` | Charged amount (microdollars as decimal string) |
-| `X-UAW-Balance-Remaining-USD` | Optional; wallet balance after charge |
+| `X-Conduit-Cost-USD` | Charged amount (microdollars as decimal string) |
+| `X-Conduit-Balance-Remaining-USD` | Optional; wallet balance after charge |
 
 **Error codes:**
 
@@ -139,8 +139,8 @@ List models from `model_catalog` filtered by caller's access group.
 {
   "id": "uuid",
   "name": "My laptop",
-  "key": "sk-uaw-abc123...",
-  "key_prefix": "sk-uaw-abc1",
+  "key": "sk-conduit-abc123...",
+  "key_prefix": "sk-conduit-abc1",
   "created_at": "2026-06-26T00:00:00Z"
 }
 ```
@@ -187,7 +187,7 @@ Root-mounted (no `/wallet/v1` prefix) per the OIDC spec.
 ```
 grant_type=authorization_code
 code=<code>&code_verifier=<verifier>&redirect_uri=<uri>
-client_id=<uaw_...>&client_secret=<secret>
+client_id=<conduit_...>&client_secret=<secret>
 ```
 
 Response:
@@ -237,7 +237,7 @@ The `access_token` is a HS256 JWT with claims `sub` (user), `app_install_id`, `s
 
 ### Gateway behavior for delegated app tokens
 
-`POST /v1/chat/completions` accepts **either** `sk-uaw-*` virtual keys **or** OAuth app access tokens. App-scoped requests enforce the per-app spend cap on the Redis fast path (`uaw:appallow:{app_install_id}`) before the provider call.
+`POST /v1/chat/completions` accepts **either** `sk-conduit-*` virtual keys **or** OAuth app access tokens. App-scoped requests enforce the per-app spend cap on the Redis fast path (`conduit:appallow:{app_install_id}`) before the provider call.
 
 | HTTP | `error.code` | When |
 |------|--------------|------|
@@ -251,4 +251,4 @@ Settle atomically debits the wallet, increments `app_installs.allowance_spent_mi
 ## 6. Versioning
 
 - URL prefix `/v1` — breaking changes bump to `/v2`
-- Gateway stays OpenAI-compatible; extensions via `X-UAW-*` headers only
+- Gateway stays OpenAI-compatible; extensions via `X-Conduit-*` headers only

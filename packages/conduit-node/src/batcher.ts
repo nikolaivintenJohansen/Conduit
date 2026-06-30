@@ -1,4 +1,4 @@
-import { AIWalletError } from './errors.js';
+import { ConduitError } from './errors.js';
 import { isRetriable } from './transport.js';
 import type { Logger, UsageEvent, UsageIngestResult } from './types.js';
 
@@ -19,7 +19,7 @@ export interface BatcherOptions {
   retries: number;
   logger?: Logger;
   onDrop?: (events: UsageEvent[], reason: 'buffer_full' | 'max_retries') => void;
-  onError?: (error: AIWalletError, context: { events: UsageEvent[] }) => void;
+  onError?: (error: ConduitError, context: { events: UsageEvent[] }) => void;
   /** Injectable sleep for deterministic tests. */
   sleep?: (ms: number) => Promise<void>;
   /** Injectable timer factory for deterministic tests. */
@@ -48,9 +48,9 @@ function toDto(event: UsageEvent): UsageEventDto {
   return dto;
 }
 
-function ensureError(err: unknown): AIWalletError {
-  if (err instanceof AIWalletError) return err;
-  return new AIWalletError(`Flush failed: ${String(err)}`, { code: 'flush_error', status: 0 });
+function ensureError(err: unknown): ConduitError {
+  if (err instanceof ConduitError) return err;
+  return new ConduitError(`Flush failed: ${String(err)}`, { code: 'flush_error', status: 0 });
 }
 
 /**

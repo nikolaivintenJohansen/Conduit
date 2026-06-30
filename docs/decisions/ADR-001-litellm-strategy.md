@@ -46,7 +46,7 @@ Build a first-party **AI Wallet Gateway** (FastAPI) that owns authentication, pr
 pip install litellm   # SDK only — we do NOT ship litellm/proxy as our entrypoint
 ```
 
-Provider API keys live in environment / secrets manager, never exposed to end users. Users receive `sk-uaw-...` virtual keys issued by our wallet service.
+Provider API keys live in environment / secrets manager, never exposed to end users. Users receive `sk-conduit-...` virtual keys issued by our wallet service.
 
 ## Consequences
 

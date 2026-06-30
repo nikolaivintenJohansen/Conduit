@@ -45,8 +45,8 @@
 
   <script>
     const params = new URLSearchParams(location.search);
-    const token = (params.get("token") || localStorage.getItem("uaw_jwt") || "");
-    if (token) localStorage.setItem("uaw_jwt", token);
+    const token = (params.get("token") || localStorage.getItem("conduit_jwt") || "");
+    if (token) localStorage.setItem("conduit_jwt", token);
 
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = "Bearer " + token;

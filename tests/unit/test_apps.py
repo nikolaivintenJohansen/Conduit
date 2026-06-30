@@ -24,7 +24,7 @@ def user_with_app(db_session):
     reg = AppRegistration(
         partner_account_id=partner.id,
         name="DemoApp",
-        client_id=f"uaw_{uuid4().hex}",
+        client_id=f"conduit_{uuid4().hex}",
         client_secret_hash="hash",
         redirect_uris=["https://demo.example.com/cb"],
     )
@@ -69,7 +69,7 @@ def test_connect_app_reactivates_revoked_install(db_session, user_with_app):
 def test_connect_app_rejects_unknown_client(db_session, user_with_app):
     user, _ = user_with_app
     with pytest.raises(AppNotFoundError):
-        connect_app(db_session, user_id=user.id, client_id="uaw_unknown")
+        connect_app(db_session, user_id=user.id, client_id="conduit_unknown")
 
 
 def test_connect_app_rejects_negative_allowance(db_session, user_with_app):

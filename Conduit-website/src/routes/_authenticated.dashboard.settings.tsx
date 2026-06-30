@@ -83,7 +83,7 @@ function PartnerModeCard() {
           </Button>
         </div>
         <p className="text-xs text-[var(--muted-foreground)]">
-          Stored locally in your browser as <code className="mono">uaw_partner_token</code>. Cleared on sign out.
+          Stored locally in your browser as <code className="mono">conduit_partner_token</code>. Cleared on sign out.
         </p>
       </div>
     </Card>

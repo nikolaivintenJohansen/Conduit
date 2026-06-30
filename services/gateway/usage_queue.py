@@ -6,7 +6,7 @@ never blocked by billing. The billing worker (``services/gateway/worker.py``)
 drains the stream with a consumer group and writes immutable ledger rows on the
 slow path.
 
-  * Stream:  ``uaw:usage:events`` (configurable via ``USAGE_STREAM_NAME``)
+  * Stream:  ``conduit:usage:events`` (configurable via ``USAGE_STREAM_NAME``)
   * Group:   ``billing``         (configurable via ``USAGE_CONSUMER_GROUP``)
 
 When Redis is unavailable we fall back to an in-memory deque with a simple
@@ -14,9 +14,9 @@ pending list so the same code path works in tests and degraded environments,
 mirroring ``rate_limit.py`` / ``allowance_cache.py`` / ``balance_cache.py``.
 
 Phase 5 hardening adds bounded retries + a dead-letter queue: the billing worker
-increments a per-entry attempt counter (``uaw:usage:attempts``) each time it picks
+increments a per-entry attempt counter (``conduit:usage:attempts``) each time it picks
 up an entry; after ``worker_max_delivery_attempts`` the entry is moved to the
-``uaw:usage:dlq`` stream (XADD + XACK + XDEL) for audit/manual replay instead of
+``conduit:usage:dlq`` stream (XADD + XACK + XDEL) for audit/manual replay instead of
 being retried forever. ``claim_stale`` reclaims pending entries stranded by a
 dead consumer via ``XCLAIM``. In-memory fallback re-delivers un-acked entries
 from ``read_batch`` so retry/DLQ behavior is exercisable in tests.
@@ -214,7 +214,7 @@ def incr_attempt(entry_id: str) -> int:
     """Increment and return the delivery-attempt count for ``entry_id``."""
     client = _get_redis()
     if client is not None:
-        return int(client.hincrby("uaw:usage:attempts", entry_id, 1))
+        return int(client.hincrby("conduit:usage:attempts", entry_id, 1))
     _mem_attempts[entry_id] = _mem_attempts.get(entry_id, 0) + 1
     return _mem_attempts[entry_id]
 
@@ -222,7 +222,7 @@ def incr_attempt(entry_id: str) -> int:
 def get_attempt_count(entry_id: str) -> int:
     client = _get_redis()
     if client is not None:
-        v = client.hget("uaw:usage:attempts", entry_id)
+        v = client.hget("conduit:usage:attempts", entry_id)
         return int(v) if v else 0
     return _mem_attempts.get(entry_id, 0)
 
@@ -230,7 +230,7 @@ def get_attempt_count(entry_id: str) -> int:
 def clear_attempt(entry_id: str) -> None:
     client = _get_redis()
     if client is not None:
-        client.hdel("uaw:usage:attempts", entry_id)
+        client.hdel("conduit:usage:attempts", entry_id)
         return
     _mem_attempts.pop(entry_id, None)
 
@@ -300,8 +300,8 @@ def reset_usage_queue() -> None:
     if client is not None:
         try:
             _scan_delete(client, _stream())
-            _scan_delete(client, "uaw:usage:idem:*")
-            _scan_delete(client, "uaw:usage:attempts")
+            _scan_delete(client, "conduit:usage:idem:*")
+            _scan_delete(client, "conduit:usage:attempts")
             _scan_delete(client, _dlq_stream())
         except Exception:
             pass
@@ -326,7 +326,7 @@ def mark_seen(request_id: str, ttl_seconds: int | None = None) -> bool:
     import time as _time
 
     ttl = ttl_seconds or get_settings().usage_idempotency_ttl_seconds
-    key = f"uaw:usage:idem:{request_id}"
+    key = f"conduit:usage:idem:{request_id}"
     client = _get_redis()
     if client is not None:
         return bool(client.set(key, "1", nx=True, ex=ttl))

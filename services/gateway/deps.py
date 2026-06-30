@@ -95,7 +95,7 @@ def get_gateway_caller(
 
     token = credentials.credentials
 
-    # Path 1: virtual key (sk-uaw-*).
+    # Path 1: virtual key (sk-conduit-*).
     if token.startswith(KEY_PREFIX):
         virtual_key = resolve_virtual_key(db, token)
         if virtual_key is None:

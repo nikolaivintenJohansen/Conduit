@@ -1,4 +1,4 @@
-# Universal AI Wallet
+# Conduit
 
 One identity, one prepaid balance, many AI apps — with partner pricing and margin on usage.
 
@@ -106,18 +106,18 @@ See [`docs/05-security-model.md`](./docs/05-security-model.md) for keys, PCI bou
 
 AI companies integrate without building usage billing, invoicing, or subscription infrastructure from scratch.
 
-**Plug-and-play tracking** — The `ai-wallet-node` SDK is a smart meter inside the app. Developers pass raw usage (e.g. token counts) into the SDK.
+**Plug-and-play tracking** — The `conduit-node` SDK is a smart meter inside the app. Developers pass raw usage (e.g. token counts) into the SDK.
 
 **Managed user dashboards** — Usage flows to the central ledger; AI Wallet renders itemized billing history so partners don't build billing UI.
 
 **Lightweight fallbacks** — Hosted Checkout redirects or server-to-server webhooks for teams that cannot use the proprietary SDK.
 
-**Target API (`@ai-wallet/sdk`)**
+**Target API (`@conduit/sdk`)**
 
 ```javascript
-import { AIWallet } from '@ai-wallet/sdk';
+import { Conduit } from '@conduit/sdk';
 
-const wallet = new AIWallet({ apiKey: process.env.AI_WALLET_API_KEY });
+const wallet = new Conduit({ apiKey: process.env.CONDUIT_API_KEY });
 
 async function handleChatRequest(userId, prompt) {
   const auth = await wallet.authorize({
@@ -158,7 +158,7 @@ Build order is **sequential** — ledger first, then deposits, auth, fast/slow p
 | **3** | Handshake & Auth | OAuth2 Authorization Code + PKCE / OIDC, Google login, per-app allowances, delegated gateway tokens | **Done** |
 | **4** | Ingestion Engine | Redis `/v1/authorize` (atomic check-and-hold), Redis Streams usage queue, `POST /v1/usage` → 202 | **Done** |
 | **5** | Billing Worker | Stream consumer, rating + markup, atomic USAGE writes, idempotent settle, Redis-gated monthly spend limit, cache revalidation/eviction, worker DLQ | **Done** |
-| **6** | Client SDK | `ai-wallet-node`: `authorize()`, batched `charge()`, 402 handling | **Done** |
+| **6** | Client SDK | `conduit-node`: `authorize()`, batched `charge()`, 402 handling | **Done** |
 | **7** | Batch Settlement | Stripe Connect onboarding + `account.updated` capability tracking, nightly UTC-midnight scheduler + external cron, atomic per-partner event reservation, single idempotent transfer per batch, append-only ledger reconciliation | **Done** |
 
 ## Status
@@ -183,10 +183,10 @@ docker compose up -d postgres redis
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-docker compose exec postgres psql -U uaw -d uaw -c "CREATE DATABASE uaw_test;"
-$env:TEST_DATABASE_URL = "postgresql+psycopg://uaw:uaw@localhost:5432/uaw_test"
-psql postgresql://uaw:uaw@localhost:5432/uaw_test -f schemas/001_initial.sql
-psql postgresql://uaw:uaw@localhost:5432/uaw_test -f schemas/002_oauth_and_apps.sql
+docker compose exec postgres psql -U conduit -d conduit -c "CREATE DATABASE conduit_test;"
+$env:TEST_DATABASE_URL = "postgresql+psycopg://conduit:conduit@localhost:5432/conduit_test"
+psql postgresql://conduit:conduit@localhost:5432/conduit_test -f schemas/001_initial.sql
+psql postgresql://conduit:conduit@localhost:5432/conduit_test -f schemas/002_oauth_and_apps.sql
 python scripts/seed_sandbox.py
 pytest -v
 uvicorn services.app.main:app --reload --port 8000
@@ -202,7 +202,7 @@ See [`tests/sandbox/README.md`](./tests/sandbox/README.md) for demo credentials 
 |----------|------|
 | Project overview & blueprint | This README — [Overview](#project-overview--purpose) · [Blueprint](#technical-blueprint) |
 | **Implementation phases** | [`docs/07-implementation-phases.md`](./docs/07-implementation-phases.md) |
-| Engineering tasks | [`ai_wallet_tasks.txt`](./ai_wallet_tasks.txt) |
+| Engineering tasks | [`conduit_tasks.txt`](./conduit_tasks.txt) |
 | Product stages | [`PROJECT_STAGES.txt`](./PROJECT_STAGES.txt) |
 | Foundation docs | [`docs/README.md`](./docs/README.md) |
 
@@ -230,7 +230,7 @@ docker-compose.yml
 
 Aligned with [Implementation Phases](./docs/07-implementation-phases.md):
 
-1. **Phase 6** — `ai-wallet-node` client SDK: `authorize()`, batched in-memory `charge()` with periodic flush to `POST /v1/usage`, clean 402 handling mid-stream — **complete** (see `packages/ai-wallet-node/`)
+1. **Phase 6** — `conduit-node` client SDK: `authorize()`, batched in-memory `charge()` with periodic flush to `POST /v1/usage`, clean 402 handling mid-stream — **complete** (see `packages/conduit-node/`)
 2. **Phase 7** — Stripe Connect batch settlement: partner onboarding + `account.updated` capability tracking, nightly UTC-midnight scheduler + `scripts/run_settlement.py` external cron, atomic per-partner event reservation, single idempotent Stripe transfer per batch, append-only ledger reconciliation to `CLEARED` — **complete** (see `services/wallet/settlement.py`, `services/wallet/partner_connect.py`, `services/wallet/settlement_scheduler.py`, `services/app/wallet/settlement_routes.py`)
 
 ### Running the settlement scheduler

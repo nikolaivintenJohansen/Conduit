@@ -1,6 +1,6 @@
 # System Architecture
 
-Universal AI Wallet — technical spine for Stage 0 → Stage 1 MVP.
+Conduit — technical spine for Stage 0 → Stage 1 MVP.
 
 ---
 
@@ -8,7 +8,7 @@ Universal AI Wallet — technical spine for Stage 0 → Stage 1 MVP.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     UNIVERSAL AI WALLET                          │
+│                     CONDUIT                                      │
 ├─────────────────┬─────────────────────┬───────────────────────────┤
 │  Login / Identity│  Prepaid Balance    │  AI Gateway               │
 │  (task 2, 10)    │  (task 3, 4)        │  (task 7, 8)              │
@@ -74,7 +74,7 @@ flowchart TB
         OAI[OpenAI / Anthropic / ...]
     end
 
-    CLI -->|sk-uaw-* Bearer| GW
+    CLI -->|sk-conduit-* Bearer| GW
     App -->|OAuth Stage 3| WAL
     Dash --> WAL
     WAL --> PG
@@ -97,7 +97,7 @@ sequenceDiagram
     participant L as litellm.Router
     participant P as Provider
 
-    C->>G: POST /v1/chat/completions<br/>Authorization: Bearer sk-uaw-...
+    C->>G: POST /v1/chat/completions<br/>Authorization: Bearer sk-conduit-...
     G->>R: Rate limit check (RPM/TPM)
     G->>R: Key cache lookup
     alt cache miss

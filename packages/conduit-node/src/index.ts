@@ -1,6 +1,6 @@
-export { AIWallet } from './client.js';
+export { Conduit } from './client.js';
 export {
-  AIWalletError,
+  ConduitError,
   PaymentRequiredError,
   UnauthorizedError,
   ForbiddenError,
@@ -17,7 +17,7 @@ export type {
   BatcherOptions,
 } from './batcher.js';
 export type {
-  AIWalletConfig,
+  ConduitConfig,
   AuthorizeOptions,
   AuthorizeResult,
   ChargeInput,

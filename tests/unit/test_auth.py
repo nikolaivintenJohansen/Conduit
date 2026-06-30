@@ -64,7 +64,7 @@ def test_session_invalidation(db_session, settings_env):
 
 def test_virtual_key_management(db_session, sandbox_user, settings_env):
     created = create_user_virtual_key(db_session, sandbox_user.id, name="primary")
-    assert created.plaintext.startswith("sk-uaw-")
+    assert created.plaintext.startswith("sk-conduit-")
     assert verify_key(created.plaintext, created.record.key_hash)
 
     keys = list_user_virtual_keys(db_session, sandbox_user.id)

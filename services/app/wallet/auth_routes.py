@@ -30,7 +30,7 @@ from services.wallet.ledger import get_or_create_wallet
 
 router = APIRouter(prefix="/wallet/v1", tags=["Auth"])
 
-_OAUTH_STATE_COOKIE = "uaw_oauth_state"
+_OAUTH_STATE_COOKIE = "conduit_oauth_state"
 _OAUTH_STATE_MAX_AGE = 600
 
 

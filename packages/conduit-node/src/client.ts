@@ -2,7 +2,7 @@ import { authorize } from './authorize.js';
 import { UsageBatcher, type UsageEventDto, type UsageSender } from './batcher.js';
 import { Transport } from './transport.js';
 import type {
-  AIWalletConfig,
+  ConduitConfig,
   AuthorizeOptions,
   AuthorizeResult,
   ChargeInput,
@@ -28,7 +28,7 @@ function env(name: string): string | undefined {
 }
 
 /**
- * Universal AI Wallet client — the smart meter inside a partner app.
+ * Conduit client — the smart meter inside a partner app.
  *
  * - `authorize()` (Phase 6.2): pre-auth + hold on the Redis fast path. Throws
  *   `PaymentRequiredError` on 402 and `UnauthorizedError` on 401.
@@ -36,16 +36,16 @@ function env(name: string): string | undefined {
  *   POST /v1/usage periodically, by size, or on `flush()`/`shutdown()`.
  * - 402 handling (Phase 6.4): catch `PaymentRequiredError` and freeze compute.
  */
-export class AIWallet {
+export class Conduit {
   private readonly transport: Transport;
   private readonly batcher: UsageBatcher;
   private readonly logger: Logger;
 
-  constructor(config: AIWalletConfig) {
-    const apiKey = config.apiKey ?? env('AI_WALLET_API_KEY');
-    if (!apiKey) throw new Error('AIWallet: apiKey is required (or set AI_WALLET_API_KEY)');
+  constructor(config: ConduitConfig) {
+    const apiKey = config.apiKey ?? env('CONDUIT_API_KEY');
+    if (!apiKey) throw new Error('Conduit: apiKey is required (or set CONDUIT_API_KEY)');
 
-    const baseUrl = (config.baseUrl ?? env('AI_WALLET_BASE_URL') ?? DEFAULT_BASE_URL).replace(
+    const baseUrl = (config.baseUrl ?? env('CONDUIT_BASE_URL') ?? DEFAULT_BASE_URL).replace(
       /\/+$/,
       '',
     );

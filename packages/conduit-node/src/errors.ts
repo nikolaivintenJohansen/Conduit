@@ -2,7 +2,7 @@
  * Base error for all AI Wallet SDK failures. Carries the backend `error.code`,
  * the HTTP `status`, and the `requestId` for support/usage lookup.
  */
-export class AIWalletError extends Error {
+export class ConduitError extends Error {
   readonly code: string;
   readonly status: number;
   readonly requestId?: string;
@@ -12,7 +12,7 @@ export class AIWalletError extends Error {
     opts: { code: string; status: number; requestId?: string; cause?: unknown },
   ) {
     super(message);
-    this.name = 'AIWalletError';
+    this.name = 'ConduitError';
     this.code = opts.code;
     this.status = opts.status;
     this.requestId = opts.requestId;
@@ -24,7 +24,7 @@ export class AIWalletError extends Error {
 }
 
 /** 402 Payment Required — wallet balance or app allowance exhausted. Freeze compute. */
-export class PaymentRequiredError extends AIWalletError {
+export class PaymentRequiredError extends ConduitError {
   constructor(message: string, opts: { code: string; requestId?: string }) {
     super(message, { code: opts.code, status: 402, requestId: opts.requestId });
     this.name = 'PaymentRequiredError';
@@ -33,7 +33,7 @@ export class PaymentRequiredError extends AIWalletError {
 }
 
 /** 401 Unauthorized — invalid/revoked key or revoked app install. Re-auth / refresh token. */
-export class UnauthorizedError extends AIWalletError {
+export class UnauthorizedError extends ConduitError {
   constructor(message: string, opts: { code: string; requestId?: string }) {
     super(message, { code: opts.code, status: 401, requestId: opts.requestId });
     this.name = 'UnauthorizedError';
@@ -42,7 +42,7 @@ export class UnauthorizedError extends AIWalletError {
 }
 
 /** 403 Forbidden — model not allowed by the caller's access group. */
-export class ForbiddenError extends AIWalletError {
+export class ForbiddenError extends ConduitError {
   constructor(message: string, opts: { code: string; requestId?: string }) {
     super(message, { code: opts.code, status: 403, requestId: opts.requestId });
     this.name = 'ForbiddenError';
@@ -51,7 +51,7 @@ export class ForbiddenError extends AIWalletError {
 }
 
 /** 429 Too Many Requests — RPM/TPM rate limit exceeded. */
-export class RateLimitError extends AIWalletError {
+export class RateLimitError extends ConduitError {
   constructor(message: string, opts: { code: string; requestId?: string }) {
     super(message, { code: opts.code, status: 429, requestId: opts.requestId });
     this.name = 'RateLimitError';
@@ -60,7 +60,7 @@ export class RateLimitError extends AIWalletError {
 }
 
 /** 5xx / unexpected upstream failure. */
-export class ServerError extends AIWalletError {
+export class ServerError extends ConduitError {
   constructor(message: string, opts: { code: string; status: number; requestId?: string }) {
     super(message, opts);
     this.name = 'ServerError';
@@ -69,7 +69,7 @@ export class ServerError extends AIWalletError {
 }
 
 /** Request aborted due to timeout. */
-export class TimeoutError extends AIWalletError {
+export class TimeoutError extends ConduitError {
   constructor(message: string, opts: { requestId?: string }) {
     super(message, { code: 'timeout', status: 408, requestId: opts.requestId });
     this.name = 'TimeoutError';
@@ -78,7 +78,7 @@ export class TimeoutError extends AIWalletError {
 }
 
 /** Network-level failure (DNS, connection refused, etc.). */
-export class NetworkError extends AIWalletError {
+export class NetworkError extends ConduitError {
   constructor(message: string, opts: { requestId?: string; cause?: unknown }) {
     super(message, { code: 'network_error', status: 0, requestId: opts.requestId, cause: opts.cause });
     this.name = 'NetworkError';

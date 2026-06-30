@@ -3,7 +3,7 @@ from services.shared.models import VirtualKey
 
 
 def test_allow_all_when_no_access_group(db_session, sandbox_user, model_catalog):
-    vkey = VirtualKey(user_id=sandbox_user.id, key_prefix="sk-uaw-test", key_hash="abc")
+    vkey = VirtualKey(user_id=sandbox_user.id, key_prefix="sk-conduit-test", key_hash="abc")
     db_session.add(vkey)
     db_session.flush()
 
@@ -17,7 +17,7 @@ def test_access_group_allows_member_model(
     vkey = VirtualKey(
         user_id=sandbox_user.id,
         access_group_id=restricted_access_group.id,
-        key_prefix="sk-uaw-test",
+        key_prefix="sk-conduit-test",
         key_hash="abc",
     )
     db_session.add(vkey)
@@ -31,7 +31,7 @@ def test_access_group_denies_other_models(db_session, sandbox_user, restricted_a
     vkey = VirtualKey(
         user_id=sandbox_user.id,
         access_group_id=restricted_access_group.id,
-        key_prefix="sk-uaw-test",
+        key_prefix="sk-conduit-test",
         key_hash="abc",
     )
     db_session.add(vkey)

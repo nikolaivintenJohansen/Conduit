@@ -67,8 +67,8 @@ Decouple fast token streaming from slow database writes.
 |------|-------------|-------------|----------|
 | 4.1 | Redis ultra-fast cache | **Done** | `services/shared/redis_client.py`, `services/gateway/balance_cache.py`, health check |
 | 4.2 | `POST /v1/authorize` — Redis balance + allowance, hold, 200 or 402 | **Done** | `services/gateway/authorize.py`, `services/app/gateway/authorize_routes.py` |
-| 4.3 | Durable message broker (Redis Streams) | **Done** | `services/gateway/usage_queue.py` (stream `uaw:usage:events`, group `billing`) |
-| 4.4 | Usage endpoint: fire-and-forget push to queue | **Done** | `POST /v1/usage` → 202 Accepted, idempotent via `uaw:usage:idem:*` |
+| 4.3 | Durable message broker (Redis Streams) | **Done** | `services/gateway/usage_queue.py` (stream `conduit:usage:events`, group `billing`) |
+| 4.4 | Usage endpoint: fire-and-forget push to queue | **Done** | `POST /v1/usage` → 202 Accepted, idempotent via `conduit:usage:idem:*` |
 
 **Exit criteria:** Authorize returns from Redis (Lua-atomic check-and-hold); usage POST returns 202 immediately and events land in the stream; a minimal billing worker (`services/gateway/worker.py`) drains the stream and writes the ledger. Verified by `tests/unit/test_balance_cache.py`, `tests/unit/test_usage_queue.py`, `tests/unit/test_authorize.py`, `tests/integration/test_authorize_api.py`, `tests/integration/test_usage_ingestion_api.py`, `tests/integration/test_billing_worker.py`.
 
@@ -85,22 +85,22 @@ Background engine: raw tokens → financial charges → immutable ledger.
 | 5.3 | Atomic write: deduct balance, update allowance, insert USAGE | **Done** | `services/wallet/usage.py` (`settle_usage_direct` for Redis-hold path; `settle_usage` for DB-hold fallback) |
 | 5.4 | Limiter: zero balance/allowance → block Redis pre-auth | **Done** | Balance + allowance + **wallet monthly spend limit** checked atomically on `/v1/authorize` via the `_PLACE_HOLD_LUA` script (`balance_cache.place_hold_checked`); worker keeps the Redis `monthly_spent` projection in sync (`incr_monthly_spent`); async settle tags soft overage (`spend_limit_overage` metadata) |
 
-**Exit criteria:** Worker drains the queue without duplicate charges; allowance and wallet stay consistent under concurrency (idempotent on `request_id` + ledger idempotency key). Balance cache revalidates from Postgres when stale (preserving active holds) and idle wallets self-evict via TTL. Poison messages are moved to `uaw:usage:dlq` after `WORKER_MAX_DELIVERY_ATTEMPTS` and stuck pending entries are reclaimed via `XCLAIM`. Verified by `tests/unit/test_balance_cache.py`, `tests/unit/test_authorize.py`, `tests/unit/test_usage_settle.py`, `tests/integration/test_authorize_api.py`, `tests/integration/test_billing_worker.py`.
+**Exit criteria:** Worker drains the queue without duplicate charges; allowance and wallet stay consistent under concurrency (idempotent on `request_id` + ledger idempotency key). Balance cache revalidates from Postgres when stale (preserving active holds) and idle wallets self-evict via TTL. Poison messages are moved to `conduit:usage:dlq` after `WORKER_MAX_DELIVERY_ATTEMPTS` and stuck pending entries are reclaimed via `XCLAIM`. Verified by `tests/unit/test_balance_cache.py`, `tests/unit/test_authorize.py`, `tests/unit/test_usage_settle.py`, `tests/integration/test_authorize_api.py`, `tests/integration/test_billing_worker.py`.
 
 ---
 
-## Phase 6: The Client SDK (`ai-wallet-node`)
+## Phase 6: The Client SDK (`conduit-node`)
 
 Smart meter package for AI developers.
 
 | Step | Requirement | Repo status | Location |
 |------|-------------|-------------|----------|
-| 6.1 | Node.js / TypeScript package scaffold | **Done** | `packages/ai-wallet-node` (pnpm workspace, tsup dual ESM/CJS + dts, vitest, ESLint/Prettier) |
-| 6.2 | `wallet.authorize()` → pre-auth endpoint | **Done** | `packages/ai-wallet-node/src/authorize.ts`, `src/client.ts` |
-| 6.3 | `wallet.charge()` — in-memory batch, periodic flush to ingestion API | **Done** | `packages/ai-wallet-node/src/batcher.ts` (interval + maxBatchSize + dedupe + exp-backoff retry + backpressure), `src/client.ts` |
-| 6.4 | Clear `402 Payment Required` errors mid-stream | **Done** | `packages/ai-wallet-node/src/errors.ts` (`PaymentRequiredError`), `src/transport.ts` (error-code mapping) |
+| 6.1 | Node.js / TypeScript package scaffold | **Done** | `packages/conduit-node` (pnpm workspace, tsup dual ESM/CJS + dts, vitest, ESLint/Prettier) |
+| 6.2 | `wallet.authorize()` → pre-auth endpoint | **Done** | `packages/conduit-node/src/authorize.ts`, `src/client.ts` |
+| 6.3 | `wallet.charge()` — in-memory batch, periodic flush to ingestion API | **Done** | `packages/conduit-node/src/batcher.ts` (interval + maxBatchSize + dedupe + exp-backoff retry + backpressure), `src/client.ts` |
+| 6.4 | Clear `402 Payment Required` errors mid-stream | **Done** | `packages/conduit-node/src/errors.ts` (`PaymentRequiredError`), `src/transport.ts` (error-code mapping) |
 
-**Exit criteria:** Partner app integrates SDK in &lt;30 lines (see `packages/ai-wallet-node/README.md`); usage batches every N seconds (`flushIntervalMs`, default 5s); 402 stops LLM calls cleanly via `PaymentRequiredError` caught before the provider call. Verified by `packages/ai-wallet-node/test/` (30 vitest specs: authorize, batcher, transport error mapping, end-to-end charge, mid-stream 402). CI Node job in `.github/workflows/ci.yml`.
+**Exit criteria:** Partner app integrates SDK in &lt;30 lines (see `packages/conduit-node/README.md`); usage batches every N seconds (`flushIntervalMs`, default 5s); 402 stops LLM calls cleanly via `PaymentRequiredError` caught before the provider call. Verified by `packages/conduit-node/test/` (30 vitest specs: authorize, batcher, transport error mapping, end-to-end charge, mid-stream 402). CI Node job in `.github/workflows/ci.yml`.
 
 ---
 
@@ -134,7 +134,7 @@ Phase 1 (Ledger)
 
 ## Mapping to engineering tasks
 
-| Phase | `ai_wallet_tasks.txt` |
+| Phase | `conduit_tasks.txt` |
 |-------|------------------------|
 | 1 | Task 1 (foundation), Task 3 (ledger) |
 | 2 | Task 4 (top-ups / Stripe) |
@@ -145,6 +145,6 @@ Phase 1 (Ledger)
 
 ## Current focus
 
-Per repo status: **Phase 1–7 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries; Phase 6: the `ai-wallet-node` TypeScript SDK — `authorize()`, batched fire-and-forget `charge()` with periodic/size/dedupe/retry/backpressure flush to `POST /v1/usage`, and clean `402` mid-stream via `PaymentRequiredError`; and Phase 7: Stripe Connect batch settlement — partner onboarding + capability tracking via `account.updated`, nightly UTC-midnight scheduler + external-cron entrypoint, atomic per-partner event reservation, single idempotent Stripe transfer per batch, and append-only ledger reconciliation with no-double-payout guarantees).
+Per repo status: **Phase 1–7 are complete** (ledger, deposits, OAuth2/OIDC handshake + Google login + delegated-token allowance enforcement, Redis `/v1/authorize` fast path + Redis Streams ingestion + embeddable billing worker, plus Phase 5 hardening: Redis-gated wallet monthly spend limit, balance-cache revalidation/eviction, and a worker dead-letter queue with bounded retries; Phase 6: the `conduit-node` TypeScript SDK — `authorize()`, batched fire-and-forget `charge()` with periodic/size/dedupe/retry/backpressure flush to `POST /v1/usage`, and clean `402` mid-stream via `PaymentRequiredError`; and Phase 7: Stripe Connect batch settlement — partner onboarding + capability tracking via `account.updated`, nightly UTC-midnight scheduler + external-cron entrypoint, atomic per-partner event reservation, single idempotent Stripe transfer per batch, and append-only ledger reconciliation with no-double-payout guarantees).
 
 The sync gateway path (`POST /v1/chat/completions`) is retained as a fallback and for clients that don't use the authorize → ingest → worker flow.

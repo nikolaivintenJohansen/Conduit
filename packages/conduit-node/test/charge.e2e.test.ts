@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { AIWallet } from '../src/client.js';
+import { Conduit } from '../src/client.js';
 import { createMockFetch, type RecordedRequest } from './helpers.js';
 
 const BASE = 'https://api.example.com/v1';
@@ -26,7 +26,7 @@ function route(req: RecordedRequest): { status: number; body: unknown } {
       body: {
         accepted: events.length,
         duplicated: 0,
-        stream: 'uaw:usage:events',
+        stream: 'conduit:usage:events',
         request_ids: events.map((e) => (e as { request_id: string }).request_id),
       },
     };
@@ -34,16 +34,16 @@ function route(req: RecordedRequest): { status: number; body: unknown } {
   return { status: 404, body: { error: { code: 'not_found', message: 'no' } } };
 }
 
-describe('AIWallet client — end-to-end charge flow (6.2 + 6.3)', () => {
-  let wallet: AIWallet;
+describe('Conduit client — end-to-end charge flow (6.2 + 6.3)', () => {
+  let wallet: Conduit;
   afterEach(async () => {
     if (wallet) await wallet.shutdown();
   });
 
   it('authorize -> charge -> flush posts a batch to /v1/usage', async () => {
     const { fetch, requests } = createMockFetch(route);
-    wallet = new AIWallet({
-      apiKey: 'sk-uaw-test',
+    wallet = new Conduit({
+      apiKey: 'sk-conduit-test',
       baseUrl: BASE,
       fetch,
       flushIntervalMs: 0,
@@ -83,8 +83,8 @@ describe('AIWallet client — end-to-end charge flow (6.2 + 6.3)', () => {
 
   it('auto-flushes when maxBatchSize is reached', async () => {
     const { fetch, requests } = createMockFetch(route);
-    wallet = new AIWallet({
-      apiKey: 'sk-uaw-test',
+    wallet = new Conduit({
+      apiKey: 'sk-conduit-test',
       baseUrl: BASE,
       fetch,
       flushIntervalMs: 0,

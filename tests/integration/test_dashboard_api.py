@@ -35,7 +35,7 @@ def auth_headers(db_session, settings_env) -> dict[str, str]:
 def test_dashboard_page_served(api_client):
     response = api_client.get("/dashboard")
     assert response.status_code == 200
-    assert "Universal AI Wallet" in response.text
+    assert "Conduit" in response.text
     assert "/dashboard/app.js" in response.text
 
 

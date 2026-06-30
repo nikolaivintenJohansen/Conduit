@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  packages/ai-wallet-node:
+  packages/conduit-node:
     devDependencies:
       '@types/node':
         specifier: ^20.14.0

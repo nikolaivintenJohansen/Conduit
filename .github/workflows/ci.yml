@@ -13,13 +13,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: uaw
-          POSTGRES_PASSWORD: uaw
-          POSTGRES_DB: uaw_test
+          POSTGRES_USER: conduit
+          POSTGRES_PASSWORD: conduit
+          POSTGRES_DB: conduit_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U uaw -d uaw_test"
+          --health-cmd "pg_isready -U conduit -d conduit_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -35,8 +35,8 @@ jobs:
           --health-retries 10
 
     env:
-      TEST_DATABASE_URL: postgresql+psycopg://uaw:uaw@localhost:5432/uaw_test
-      DATABASE_URL: postgresql://uaw:uaw@localhost:5432/uaw_test
+      TEST_DATABASE_URL: postgresql+psycopg://conduit:conduit@localhost:5432/conduit_test
+      DATABASE_URL: postgresql://conduit:conduit@localhost:5432/conduit_test
       REDIS_URL: redis://localhost:6379/0
       KEY_HASH_PEPPER: test-pepper
       JWT_SECRET: test-jwt-secret
@@ -52,9 +52,9 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Apply schema
-        run: psql postgresql://uaw:uaw@localhost:5432/uaw_test -f schemas/001_initial.sql
+        run: psql postgresql://conduit:conduit@localhost:5432/conduit_test -f schemas/001_initial.sql
         env:
-          PGPASSWORD: uaw
+          PGPASSWORD: conduit
 
       - name: Lint
         run: ruff check services tests
@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/ai-wallet-node
+        working-directory: packages/conduit-node
 
     steps:
       - uses: actions/checkout@v4

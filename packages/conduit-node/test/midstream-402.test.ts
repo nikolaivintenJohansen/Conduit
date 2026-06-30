@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { AIWallet, PaymentRequiredError } from '../src/index.js';
+import { Conduit, PaymentRequiredError } from '../src/index.js';
 import { createMockFetch } from './helpers.js';
 
 const BASE = 'https://api.example.com/v1';
 
 describe('Phase 6.4 — 402 stops LLM calls cleanly', () => {
-  let wallet: AIWallet;
+  let wallet: Conduit;
   afterEach(async () => {
     if (wallet) await wallet.shutdown();
   });
@@ -21,8 +21,8 @@ describe('Phase 6.4 — 402 stops LLM calls cleanly', () => {
         },
       },
     });
-    wallet = new AIWallet({
-      apiKey: 'sk-uaw-test',
+    wallet = new Conduit({
+      apiKey: 'sk-conduit-test',
       baseUrl: BASE,
       fetch,
       flushIntervalMs: 0,
@@ -56,8 +56,8 @@ describe('Phase 6.4 — 402 stops LLM calls cleanly', () => {
       status: 402,
       body: { error: { code: 'allowance_exceeded', message: 'app cap hit' } },
     });
-    wallet = new AIWallet({
-      apiKey: 'sk-uaw-test',
+    wallet = new Conduit({
+      apiKey: 'sk-conduit-test',
       baseUrl: BASE,
       fetch,
       flushIntervalMs: 0,

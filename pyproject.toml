@@ -1,7 +1,7 @@
 [project]
-name = "universal-ai-wallet"
+name = "universal-conduit"
 version = "0.1.0"
-description = "Universal AI Wallet — prepaid balance and OpenAI-compatible gateway"
+description = "Conduit — prepaid balance and OpenAI-compatible gateway"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

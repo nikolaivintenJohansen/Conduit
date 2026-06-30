@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="info", alias="LOG_LEVEL")
 
     database_url: str = Field(
-        default="postgresql://uaw:uaw@localhost:5432/uaw",
+        default="postgresql://conduit:conduit@localhost:5432/conduit",
         alias="DATABASE_URL",
     )
     redis_url: str = Field(
@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     )
 
     # Phase 4 — ingestion engine (Redis fast path + durable stream)
-    usage_stream_name: str = Field(default="uaw:usage:events", alias="USAGE_STREAM_NAME")
+    usage_stream_name: str = Field(default="conduit:usage:events", alias="USAGE_STREAM_NAME")
     usage_consumer_group: str = Field(default="billing", alias="USAGE_CONSUMER_GROUP")
     usage_consumer_name: str = Field(default="worker-1", alias="USAGE_CONSUMER_NAME")
     usage_idempotency_ttl_seconds: int = Field(
@@ -91,7 +91,7 @@ class Settings(BaseSettings):
     )
     worker_max_delivery_attempts: int = Field(default=5, alias="WORKER_MAX_DELIVERY_ATTEMPTS")
     worker_claim_idle_ms: int = Field(default=60_000, alias="WORKER_CLAIM_IDLE_MS")
-    usage_dlq_stream_name: str = Field(default="uaw:usage:dlq", alias="USAGE_DLQ_STREAM_NAME")
+    usage_dlq_stream_name: str = Field(default="conduit:usage:dlq", alias="USAGE_DLQ_STREAM_NAME")
 
     # Phase 7 — batch settlement (Stripe Connect payouts)
     settlement_enabled: bool = Field(default=False, alias="SETTLEMENT_ENABLED")

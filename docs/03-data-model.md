@@ -96,11 +96,11 @@ Prepaid balance container.
 
 ### virtual_keys
 
-User-facing API keys (`sk-uaw-` prefix). Store **hash only** (HMAC-SHA256 with server pepper).
+User-facing API keys (`sk-conduit-` prefix). Store **hash only** (HMAC-SHA256 with server pepper).
 
 | Column | Notes |
 |--------|-------|
-| `key_prefix` | First 12 chars for display (`sk-uaw-abcd...`) |
+| `key_prefix` | First 12 chars for display (`sk-conduit-abcd...`) |
 | `key_hash` | Never store plaintext after creation |
 | `rpm_limit`, `tpm_limit` | Rate limits; 0 = inherit default |
 | `budget_microdollars` | Optional per-key cap (lifetime or period) |
@@ -200,7 +200,7 @@ OAuth clients, user consent, and per-app spend allowances. Source of truth: `sch
 
 **`app_registrations`** — partner OAuth clients.
 
-- `client_id` (`uaw_<random>`), `client_secret_hash` (HMAC), `redirect_uris[]`, `scopes[]`
+- `client_id` (`conduit_<random>`), `client_secret_hash` (HMAC), `redirect_uris[]`, `scopes[]`
 - `is_active`, `logo_url`, `partner_account_id` (FK)
 
 **`app_installs`** — a user's consented connection to an app; carries the per-app allowance.
@@ -223,7 +223,7 @@ OAuth clients, user consent, and per-app spend allowances. Source of truth: `sch
 
 - `(provider, provider_sub)` unique; `user_id` FK. `get_or_create_oauth_user()` links on email or creates a passwordless user.
 
-> All money columns are `*_microdollars` (BigInt, `$1.00 = 1_000_000`) to match the ledger. The gateway enforces the allowance on a Redis fast-path projection (`uaw:appallow:{app_install_id}`) with DB fallback on cache miss; see [04-api-contracts.md](./04-api-contracts.md) §5.
+> All money columns are `*_microdollars` (BigInt, `$1.00 = 1_000_000`) to match the ledger. The gateway enforces the allowance on a Redis fast-path projection (`conduit:appallow:{app_install_id}`) with DB fallback on cache miss; see [04-api-contracts.md](./04-api-contracts.md) §5.
 
 ### payment_intents
 

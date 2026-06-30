@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from services.shared.models import AppRegistration
 from services.wallet.keys import hash_key
 
-CLIENT_ID_PREFIX = "uaw_"
+CLIENT_ID_PREFIX = "conduit_"
 DEFAULT_SCOPES = ["wallet:charge", "profile:read"]
 
 

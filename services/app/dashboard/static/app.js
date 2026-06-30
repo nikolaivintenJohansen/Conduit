@@ -1,5 +1,5 @@
 const API = "/wallet/v1";
-const TOKEN_KEY = "uaw_token";
+const TOKEN_KEY = "conduit_token";
 
 function microToUsd(micro) {
   return (micro / 1_000_000).toLocaleString("en-US", {

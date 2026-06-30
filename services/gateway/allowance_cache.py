@@ -27,7 +27,7 @@ _memory: dict[str, dict[str, str]] = {}
 
 
 def _key(app_install_id) -> str:
-    return f"uaw:appallow:{app_install_id}"
+    return f"conduit:appallow:{app_install_id}"
 
 
 def _get_redis() -> redis.Redis | None:

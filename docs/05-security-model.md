@@ -20,7 +20,7 @@ Out of MVP scope: SOC2, HSM, multi-region DR — track in Stage 5.
 
 ## 2. API key storage
 
-Virtual keys use format `sk-uaw-<random>` (prefix identifies product).
+Virtual keys use format `sk-conduit-<random>` (prefix identifies product).
 
 | Stage | Handling |
 |-------|----------|
@@ -43,12 +43,12 @@ LiteLLM stores keys similarly in `LiteLLM_VerificationToken` — we reimplement,
 │  PUBLIC INTERNET                                             │
 ├──────────────────────────┬──────────────────────────────────┤
 │  Gateway                  │  Wallet API                       │
-│  Bearer: sk-uaw-*         │  Bearer: JWT (user session)       │
+│  Bearer: sk-conduit-*         │  Bearer: JWT (user session)       │
 │  → virtual_keys           │  → sessions                       │
 │  → wallet balance         │  → users                          │
 └──────────────────────────┴──────────────────────────────────┘
 │  NEVER accepts JWT on gateway for MVP (keys only)           │
-│  NEVER accepts sk-uaw-* on wallet mutating routes except     │
+│  NEVER accepts sk-conduit-* on wallet mutating routes except     │
 │    key self-management via JWT session                        │
 └─────────────────────────────────────────────────────────────┘
 ```

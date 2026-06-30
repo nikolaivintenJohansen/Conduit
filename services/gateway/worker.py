@@ -15,7 +15,7 @@ unique ``(wallet_id, idempotency_key)`` constraint, so redelivered stream
 entries are no-ops. Successfully processed entries are XACK'd and XDEL'd; failed
 entries are logged and left un-acked for retry. After
 ``worker_max_delivery_attempts`` deliveries a poison entry is moved to the
-dead-letter stream (``uaw:usage:dlq``) instead of being retried forever, and
+dead-letter stream (``conduit:usage:dlq``) instead of being retried forever, and
 ``claim_stale`` reclaims entries stranded by a dead consumer. The worker also
 keeps the Redis ``monthly_spent`` projection in sync (``incr_monthly_spent``)
 and runs a bounded balance-cache revalidation sweep in ``run_loop``.

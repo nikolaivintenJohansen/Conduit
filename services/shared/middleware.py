@@ -6,14 +6,14 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-logger = logging.getLogger("uaw.http")
+logger = logging.getLogger("conduit.http")
 
 
 def _auth_context(authorization: str | None) -> tuple[str, str | None]:
     if not authorization:
         return "none", None
 
-    if authorization.startswith("Bearer sk-uaw-"):
+    if authorization.startswith("Bearer sk-conduit-"):
         token = authorization.removeprefix("Bearer ").strip()
         prefix = token[:12] if len(token) >= 12 else token
         return "virtual_key", prefix
@@ -69,7 +69,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "latency_ms": latency_ms,
                 "auth_type": auth_type,
                 "key_prefix": key_prefix,
-                "cost_usd": response.headers.get("X-UAW-Cost-USD"),
+                "cost_usd": response.headers.get("X-Conduit-Cost-USD"),
             }
         )
 

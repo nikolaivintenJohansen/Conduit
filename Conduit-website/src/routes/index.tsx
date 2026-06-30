@@ -235,7 +235,7 @@ function ProductSection({
             <DarkCodeBlock
               language="bash"
               code={`curl https://api.conduit.dev/v1/chat/completions \\
-  -H "Authorization: Bearer sk-uaw-..." \\
+  -H "Authorization: Bearer sk-conduit-..." \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "gpt-4o-mini",

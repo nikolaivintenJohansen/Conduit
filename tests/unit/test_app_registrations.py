@@ -32,7 +32,7 @@ def test_create_app_registration_hashes_secret(db_session, partner):
         redirect_uris=["https://cursor.sh/callback"],
     )
 
-    assert created.record.client_id.startswith("uaw_")
+    assert created.record.client_id.startswith("conduit_")
     assert created.client_secret
     assert created.record.client_secret_hash != created.client_secret
     assert created.record.is_active is True

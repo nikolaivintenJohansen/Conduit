@@ -48,7 +48,7 @@ def live_services_env(monkeypatch: pytest.MonkeyPatch):
     get_settings.cache_clear()
     monkeypatch.setenv(
         "DATABASE_URL",
-        os.environ.get("DATABASE_URL", "postgresql://uaw:uaw@localhost:5432/uaw_test"),
+        os.environ.get("DATABASE_URL", "postgresql://conduit:conduit@localhost:5432/conduit_test"),
     )
     monkeypatch.setenv(
         "REDIS_URL",

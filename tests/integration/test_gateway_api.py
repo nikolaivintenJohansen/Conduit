@@ -60,8 +60,8 @@ def test_chat_completion_success(api_client, gateway_headers, db_session, sandbo
     assert body["choices"][0]["message"]["content"]
     assert body["usage"]["total_tokens"] > 0
     assert "X-Request-Id" in response.headers
-    assert "X-UAW-Cost-USD" in response.headers
-    assert "X-UAW-Balance-Remaining-USD" in response.headers
+    assert "X-Conduit-Cost-USD" in response.headers
+    assert "X-Conduit-Balance-Remaining-USD" in response.headers
 
     wallet = db_session.query(Wallet).filter_by(user_id=sandbox_user.id).one()
     assert wallet.balance_microdollars < 5_000_000
@@ -75,7 +75,7 @@ def test_chat_completion_success(api_client, gateway_headers, db_session, sandbo
 def test_chat_completion_invalid_api_key(api_client):
     response = api_client.post(
         "/v1/chat/completions",
-        headers={"Authorization": "Bearer sk-uaw-invalid"},
+        headers={"Authorization": "Bearer sk-conduit-invalid"},
         json={
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": "hello"}],

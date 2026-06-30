@@ -32,7 +32,7 @@ def user_and_app(db_session):
     reg = AppRegistration(
         partner_account_id=partner.id,
         name="DemoApp",
-        client_id=f"uaw_{uuid4().hex}",
+        client_id=f"conduit_{uuid4().hex}",
         client_secret_hash="hash",
         redirect_uris=["https://demo.example.com/cb"],
     )
@@ -84,7 +84,7 @@ def test_connect_list_update_revoke_flow(api_client, db_session, user_and_app):
 def test_connect_unknown_app_404(api_client, user_and_app):
     _, _, token = user_and_app
     response = api_client.post(
-        "/wallet/v1/apps/uaw_unknown/connect",
+        "/wallet/v1/apps/conduit_unknown/connect",
         headers=_headers(token),
         json={"spend_limit_microdollars": 1_000_000},
     )

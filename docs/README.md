@@ -1,4 +1,4 @@
-# Universal AI Wallet — Foundation Docs (Task 1)
+# Conduit — Foundation Docs (Task 1)
 
 Stage 0 deliverables. Everything downstream (tasks 2–12) should align with these documents.
 
