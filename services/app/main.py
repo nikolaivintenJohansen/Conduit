@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from services.app.dashboard.routes import router as dashboard_router
 from services.app.gateway.authorize_routes import router as authorize_router
@@ -46,6 +47,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Conduit", version="0.1.0", lifespan=lifespan)
+settings = get_settings()
+if settings.cors_origin_list:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 app.add_middleware(GatewayResponseHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.include_router(health_router)

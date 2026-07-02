@@ -1,0 +1,86 @@
+services:
+  - type: keyvalue
+    name: conduit-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: conduit-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: PORT
+        value: "8000"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: conduit-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: KEY_HASH_PEPPER
+        generateValue: true
+      - key: PARTNER_ADMIN_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: worker
+    name: conduit-worker
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python -m services.gateway.worker
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: conduit-redis
+          property: connectionString
+      - key: KEY_HASH_PEPPER
+        generateValue: true
+
+  - type: worker
+    name: conduit-settlement
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python -m services.wallet.settlement_scheduler
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: SETTLEMENT_ENABLED
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: conduit-redis
+          property: connectionString
+      - key: PARTNER_ADMIN_SECRET
+        generateValue: true

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     app_env: str = Field(default="development", alias="APP_ENV")
     log_level: str = Field(default="info", alias="LOG_LEVEL")
+    cors_origins: str = Field(default="", alias="CORS_ORIGINS")
 
     database_url: str = Field(
         default="postgresql://conduit:conduit@localhost:5432/conduit",
@@ -121,6 +122,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() in {"production", "staging"}
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache
