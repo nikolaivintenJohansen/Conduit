@@ -25,12 +25,12 @@ def _normalize_sync_url(database_url: str) -> str:
 def _normalize_async_url(database_url: str) -> str:
     url = _normalize_sync_url(database_url)
     if "+psycopg" in url:
-        return url.replace("+psycopg", "+asyncpg", 1)
+        url = url.replace("+psycopg", "+asyncpg", 1)
     if url.startswith("postgresql+asyncpg://"):
-        return url
+        return url.replace("sslmode=require", "ssl=require")
     if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    return url
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url.replace("sslmode=require", "ssl=require")
 
 
 def create_db_engine(database_url: str | None = None) -> Engine:
