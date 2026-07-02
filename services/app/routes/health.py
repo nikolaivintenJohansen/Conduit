@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Response
 
 from services.shared.config import get_settings
@@ -16,12 +18,13 @@ async def health_check(response: Response) -> dict[str, str]:
     redis_status = "ok"
 
     try:
-        await check_database(settings.database_url_async)
+        await asyncio.wait_for(check_database(settings.database_url_async), timeout=5)
     except Exception:
         db_status = "error"
 
     try:
-        if not await check_redis(settings.redis_url):
+        redis_ok = await asyncio.wait_for(check_redis(settings.redis_url), timeout=5)
+        if not redis_ok:
             redis_status = "error"
     except Exception:
         redis_status = "error"
