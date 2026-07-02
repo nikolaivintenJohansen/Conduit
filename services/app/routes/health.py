@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from fastapi import APIRouter, Response
 
@@ -7,6 +8,7 @@ from services.shared.db import check_database
 from services.shared.redis_client import check_redis
 
 router = APIRouter(tags=["System"])
+logger = logging.getLogger("conduit.health")
 
 
 @router.get("/health")
@@ -31,6 +33,8 @@ async def health_check(response: Response) -> dict[str, str]:
 
     healthy = db_status == "ok" and redis_status == "ok"
     response.status_code = 200 if healthy else 503
+    if not healthy:
+        logger.warning("health check degraded: database=%s redis=%s", db_status, redis_status)
 
     return {
         "status": "ok" if healthy else "degraded",
