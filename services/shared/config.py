@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,8 +15,6 @@ class Settings(BaseSettings):
 
     app_env: str = Field(default="development", alias="APP_ENV")
     log_level: str = Field(default="info", alias="LOG_LEVEL")
-    cors_origins: str = Field(default="", alias="CORS_ORIGINS")
-
     database_url: str = Field(
         default="postgresql://conduit:conduit@localhost:5432/conduit",
         alias="DATABASE_URL",
@@ -108,6 +106,17 @@ class Settings(BaseSettings):
         default=3600.0, alias="SETTLEMENT_POLL_INTERVAL_SECONDS"
     )
 
+    # CORS — comma-separated list of origins allowed to call the API from a browser
+    # (e.g. the Conduit-website frontend). Default covers local dev only.
+    cors_allowed_origins: str = Field(
+        default="http://localhost:3000",
+        validation_alias=AliasChoices("CORS_ALLOWED_ORIGINS", "CORS_ORIGINS"),
+    )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
+
     @property
     def database_url_async(self) -> str:
         url = self.database_url
@@ -125,7 +134,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return self.cors_origins
 
 
 @lru_cache
