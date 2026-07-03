@@ -118,6 +118,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> AuthRespon
     user = create_user(db, body.email, body.password, display_name=body.display_name)
     get_or_create_wallet(db, user.id)
     result = issue_session(db, user)
+    db.commit()
     return _auth_response(result)
 
 
@@ -133,6 +134,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
         )
 
     result = issue_session(db, user)
+    db.commit()
     return _auth_response(result)
 
 
@@ -224,5 +226,6 @@ def google_callback(
     )
     get_or_create_wallet(db, user.id)
     result = issue_session(db, user)
+    db.commit()
     response.delete_cookie(_OAUTH_STATE_COOKIE)
     return _auth_response(result)
