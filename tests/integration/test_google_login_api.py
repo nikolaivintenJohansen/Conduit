@@ -113,8 +113,42 @@ def test_google_callback_replays_same_identity(api_client, monkeypatch):
     assert second.json()["user"]["email"] == "replay@example.com"
 
 
-def test_google_login_redirect_requires_config(api_client, settings_env):
-    # GOOGLE_CLIENT_ID is unset in settings_env, so the redirect endpoint 503s.
+def test_google_callback_accepts_self_signed_state_without_cookie(api_client, monkeypatch):
+    # Cross-origin SPA flow: Google round-trips the self-signed state ("raw.signature")
+    # through the frontend, which POSTs it back. The httponly state cookie is NOT sent
+    # cross-origin, so the callback must verify the self-signed state on its own.
+    from services.app.wallet import auth_routes
+    from services.wallet.google_oauth import GoogleProfile
+
+    api_client.cookies.clear()
+    self_signed = _sign_state("cross-origin-state")
+
+    monkeypatch.setattr(
+        auth_routes,
+        "exchange_code_and_profile",
+        lambda code: GoogleProfile(
+            sub="google-cross-origin",
+            email="crossorigin@example.com",
+            email_verified=True,
+            name="Cross Origin",
+        ),
+    )
+
+    response = api_client.post(
+        "/wallet/v1/auth/oauth/google/callback",
+        json={"code": "fake-code", "state": self_signed},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["user"]["email"] == "crossorigin@example.com"
+
+
+def test_google_login_redirect_requires_config(api_client, settings_env, monkeypatch):
+    # Force Google OAuth to be unconfigured regardless of what .env contains, so the
+    # redirect endpoint 503s with google_not_configured.
+    get_settings.cache_clear()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "")
     get_settings.cache_clear()
     response = api_client.get("/wallet/v1/auth/oauth/google")
     assert response.status_code == 503

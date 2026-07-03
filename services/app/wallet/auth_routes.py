@@ -39,13 +39,21 @@ def _sign_state(state: str) -> str:
     return f"{state}.{hash_key(state, pepper=settings.jwt_secret)}"
 
 
-def _verify_state(state: str, signed: str) -> bool:
-    if "." not in signed:
-        return False
-    expected = _sign_state(state)
+def _verify_state(state: str, signed: str | None) -> bool:
     import hmac as _hmac
 
-    return _hmac.compare_digest(expected, signed)
+    # Self-signed state round-tripped through Google as the `state` param ("raw.signature").
+    # Required for the cross-origin SPA flow: the httponly state cookie is set on the
+    # backend origin and is not sent on the frontend's cross-origin POST, so the state
+    # must be verifiable on its own.
+    if "." in state:
+        raw, _ = state.split(".", 1)
+        return _hmac.compare_digest(_sign_state(raw), state)
+    # Cookie-verified state (same-origin clients / integration tests): `state` is the raw
+    # value and the signed value travels in the cookie.
+    if not signed or "." not in signed:
+        return False
+    return _hmac.compare_digest(_sign_state(state), signed)
 
 
 class RegisterRequest(BaseModel):
@@ -166,7 +174,7 @@ class GoogleCallbackRequest(BaseModel):
 def google_login(request: Request) -> RedirectResponse:
     try:
         raw_state = secrets.token_urlsafe(24)
-        url = authorization_url(state=raw_state)
+        url = authorization_url(state=_sign_state(raw_state))
     except GoogleNotConfiguredError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -193,7 +201,7 @@ def google_callback(
     db: Session = Depends(get_db),
 ) -> AuthResponse:
     signed = request.cookies.get(_OAUTH_STATE_COOKIE)
-    if not signed or not _verify_state(body.state, signed):
+    if not _verify_state(body.state, signed):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": {"code": "invalid_state", "message": "OAuth state mismatch"}},

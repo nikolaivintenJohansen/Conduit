@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import httpx
 from authlib.integrations.httpx_client import OAuth2Client
 
 from services.shared.config import get_settings
@@ -32,6 +33,34 @@ class GoogleNotConfiguredError(GoogleOAuthError):
     pass
 
 
+_discovery_cache: dict | None = None
+
+
+def _get_discovery() -> dict:
+    """Fetch (and cache) Google's OIDC discovery document.
+
+    The discovery document is the source of truth for the authorization, token,
+    and userinfo endpoints — Google's consent screen lives at
+    ``authorization_endpoint``, NOT at the discovery URL itself. Google's
+    endpoints are stable, so caching once per process avoids a network
+    round-trip on every login. A plain httpx GET is used because the discovery
+    document is public (no bearer token).
+    """
+    global _discovery_cache
+    if _discovery_cache is not None:
+        return _discovery_cache
+    resp = httpx.get(GOOGLE_DISCOVERY_URL, timeout=10)
+    resp.raise_for_status()
+    _discovery_cache = resp.json()
+    return _discovery_cache
+
+
+def reset_discovery_cache() -> None:
+    """Clear the cached discovery document (used by tests)."""
+    global _discovery_cache
+    _discovery_cache = None
+
+
 def _client() -> OAuth2Client:
     settings = get_settings()
     if not settings.google_client_id or not settings.google_client_secret:
@@ -45,9 +74,13 @@ def _client() -> OAuth2Client:
 
 def authorization_url(state: str) -> str:
     settings = get_settings()
-    with _client() as client:
+    with _client() as client:  # raises GoogleNotConfiguredError if unconfigured
+        discovery = _get_discovery()
+        auth_ep = discovery.get("authorization_endpoint")
+        if not auth_ep:
+            raise GoogleOAuthError("Google discovery missing authorization_endpoint")
         url, _ = client.create_authorization_url(
-            GOOGLE_DISCOVERY_URL,
+            auth_ep,
             redirect_uri=settings.google_oauth_redirect_url,
             state=state,
         )
@@ -56,25 +89,44 @@ def authorization_url(state: str) -> str:
 
 def exchange_code_and_profile(code: str) -> GoogleProfile:
     settings = get_settings()
-    with _client() as client:
-        token = client.fetch_token(
-            GOOGLE_DISCOVERY_URL,
-            redirect_uri=settings.google_oauth_redirect_url,
-            code=code,
-            grant_type="authorization_code",
+    discovery = _get_discovery()
+    token_ep = discovery.get("token_endpoint")
+    userinfo_ep = discovery.get("userinfo_endpoint")
+    if not token_ep or not userinfo_ep:
+        raise GoogleOAuthError("Google discovery missing token or userinfo endpoint")
+
+    try:
+        with _client() as client:
+            token = client.fetch_token(
+                token_ep,
+                redirect_uri=settings.google_oauth_redirect_url,
+                code=code,
+                grant_type="authorization_code",
+            )
+    except GoogleOAuthError:
+        raise
+    except Exception as exc:
+        raise GoogleOAuthError(f"Google token exchange failed: {exc}") from exc
+
+    access_token = token.get("access_token")
+    if not access_token:
+        raise GoogleOAuthError("Google token response missing access_token")
+
+    # Fetch the userinfo profile with a plain httpx GET. authlib's OAuth2Client
+    # auto-manages a bearer token on its own .get() and this authlib version
+    # rejects the withhold_token kwarg, so a raw httpx request with an explicit
+    # Authorization header is the robust path. Wrap failures in GoogleOAuthError
+    # so the caller returns a proper 400 (with CORS) instead of an opaque 500.
+    try:
+        resp = httpx.get(
+            userinfo_ep,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
         )
-        access_token = token.get("access_token")
-        if not access_token:
-            raise GoogleOAuthError("Google token response missing access_token")
-
-        discovery = client.get(GOOGLE_DISCOVERY_URL).json()
-        userinfo_endpoint = discovery.get("userinfo_endpoint")
-        if not userinfo_endpoint:
-            raise GoogleOAuthError("Google discovery missing userinfo_endpoint")
-
-        profile = client.get(
-            userinfo_endpoint, headers={"Authorization": f"Bearer {access_token}"}
-        ).json()
+        resp.raise_for_status()
+        profile = resp.json()
+    except Exception as exc:
+        raise GoogleOAuthError(f"Google userinfo request failed: {exc}") from exc
 
     sub = profile.get("sub")
     email = profile.get("email")

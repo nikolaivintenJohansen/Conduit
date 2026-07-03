@@ -1,7 +1,51 @@
 from uuid import uuid4
 
+import pytest
+
+from services.shared.config import get_settings
 from services.shared.models import OAuthIdentity
+from services.wallet import google_oauth
 from services.wallet.auth import get_or_create_oauth_user, get_user_by_email
+
+
+def test_authorization_url_uses_resolved_auth_endpoint(settings_env, monkeypatch):
+    # Google's consent screen lives at the authorization_endpoint resolved from the
+    # discovery document — NOT at the discovery URL itself.
+    get_settings.cache_clear()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "GOCSPX-test-secret")
+    monkeypatch.setenv(
+        "GOOGLE_OAUTH_REDIRECT_URL", "http://localhost:3000/auth/google/callback"
+    )
+    get_settings.cache_clear()
+
+    fake_auth_ep = "https://accounts.google.com/o/oauth2/v2/auth"
+    monkeypatch.setattr(
+        google_oauth,
+        "_get_discovery",
+        lambda: {
+            "authorization_endpoint": fake_auth_ep,
+            "token_endpoint": "https://oauth2.googleapis.com/token",
+            "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
+        },
+    )
+
+    url = google_oauth.authorization_url("my-state")
+
+    assert url.startswith(fake_auth_ep)
+    assert "client_id=test-client-id.apps.googleusercontent.com" in url
+    assert "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgoogle%2Fcallback" in url
+    assert "state=my-state" in url
+    assert ".well-known/openid-configuration" not in url
+
+
+def test_authorization_url_unconfigured_raises(settings_env, monkeypatch):
+    get_settings.cache_clear()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "")
+    get_settings.cache_clear()
+    with pytest.raises(google_oauth.GoogleNotConfiguredError):
+        google_oauth.authorization_url("state")
 
 
 def test_get_or_create_oauth_user_creates_new(db_session):
