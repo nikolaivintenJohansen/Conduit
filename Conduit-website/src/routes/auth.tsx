@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { ApiError, api } from "@/lib/api";
@@ -36,6 +36,66 @@ interface AuthResponse {
 function AuthPage() {
   const { tab, redirect } = Route.useSearch();
   const navigate = useNavigate();
+  const oauthRan = useRef(false);
+  const [oauthStatus, setOauthStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (oauthRan.current || typeof window === "undefined") return;
+
+    const sp = new URLSearchParams(window.location.search);
+    const code = sp.get("code");
+    const state = sp.get("state");
+    const error = sp.get("error");
+    const errorDescription = sp.get("error_description");
+
+    if (!code && !error) return;
+    oauthRan.current = true;
+
+    if (error) {
+      setOauthStatus(`Google sign-in failed: ${errorDescription || error}`);
+      setTimeout(
+        () => navigate({ to: "/auth", search: { tab: "login", redirect: "/dashboard" } }),
+        2500,
+      );
+      return;
+    }
+
+    if (!state) {
+      setOauthStatus("Google sign-in failed: missing OAuth state.");
+      setTimeout(
+        () => navigate({ to: "/auth", search: { tab: "login", redirect: "/dashboard" } }),
+        2500,
+      );
+      return;
+    }
+
+    setOauthStatus("Finishing sign-in...");
+    (async () => {
+      try {
+        const res = await api<AuthResponse>("/wallet/v1/auth/oauth/google/callback", {
+          method: "POST",
+          body: { code, state },
+        });
+        setJwt(res.access_token);
+        navigate({ to: (sp.get("redirect") || "/dashboard") as "/dashboard" });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Google sign-in failed.";
+        setOauthStatus(`Google sign-in failed: ${message}`);
+        setTimeout(
+          () => navigate({ to: "/auth", search: { tab: "login", redirect: "/dashboard" } }),
+          3000,
+        );
+      }
+    })();
+  }, [navigate]);
+
+  if (oauthStatus) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--surface)] px-6 text-center text-sm text-[var(--muted-foreground)]">
+        {oauthStatus}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--surface)] text-[var(--ink)] relative overflow-hidden">
