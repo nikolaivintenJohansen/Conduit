@@ -48,6 +48,75 @@ def test_authorization_url_unconfigured_raises(settings_env, monkeypatch):
         google_oauth.authorization_url("state")
 
 
+def test_exchange_code_posts_google_web_server_payload(settings_env, monkeypatch):
+    get_settings.cache_clear()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "GOCSPX-test-secret")
+    monkeypatch.setenv(
+        "GOOGLE_OAUTH_REDIRECT_URL", "https://conduitwallet.com/auth/google/callback"
+    )
+    get_settings.cache_clear()
+
+    monkeypatch.setattr(
+        google_oauth,
+        "_get_discovery",
+        lambda: {
+            "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
+            "token_endpoint": "https://oauth2.googleapis.com/token",
+            "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
+        },
+    )
+
+    posted = {}
+
+    class FakeResponse:
+        def __init__(self, body):
+            self._body = body
+            self.text = str(body)
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._body
+
+    def fake_post(url, *, data, headers, timeout):
+        posted["url"] = url
+        posted["data"] = data
+        posted["headers"] = headers
+        posted["timeout"] = timeout
+        return FakeResponse({"access_token": "google-access-token"})
+
+    def fake_get(url, *, headers, timeout):
+        assert headers == {"Authorization": "Bearer google-access-token"}
+        assert timeout == 10
+        return FakeResponse(
+            {
+                "sub": "google-sub",
+                "email": "user@example.com",
+                "email_verified": True,
+                "name": "Google User",
+            }
+        )
+
+    monkeypatch.setattr(google_oauth.httpx, "post", fake_post)
+    monkeypatch.setattr(google_oauth.httpx, "get", fake_get)
+
+    profile = google_oauth.exchange_code_and_profile("auth-code")
+
+    assert posted["url"] == "https://oauth2.googleapis.com/token"
+    assert posted["data"] == {
+        "client_id": "test-client-id.apps.googleusercontent.com",
+        "client_secret": "GOCSPX-test-secret",
+        "code": "auth-code",
+        "grant_type": "authorization_code",
+        "redirect_uri": "https://conduitwallet.com/auth/google/callback",
+    }
+    assert posted["headers"] == {"Accept": "application/json"}
+    assert posted["timeout"] == 10
+    assert profile.email == "user@example.com"
+
+
 def test_get_or_create_oauth_user_creates_new(db_session):
     email = f"g-{uuid4()}@example.com"
     user = get_or_create_oauth_user(

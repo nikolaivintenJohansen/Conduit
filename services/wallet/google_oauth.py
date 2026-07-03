@@ -94,17 +94,32 @@ def exchange_code_and_profile(code: str) -> GoogleProfile:
     userinfo_ep = discovery.get("userinfo_endpoint")
     if not token_ep or not userinfo_ep:
         raise GoogleOAuthError("Google discovery missing token or userinfo endpoint")
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise GoogleNotConfiguredError("Google OAuth is not configured")
 
     try:
-        with _client() as client:
-            token = client.fetch_token(
-                token_ep,
-                redirect_uri=settings.google_oauth_redirect_url,
-                code=code,
-                grant_type="authorization_code",
-            )
+        resp = httpx.post(
+            token_ep,
+            data={
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": settings.google_oauth_redirect_url,
+            },
+            headers={"Accept": "application/json"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        token = resp.json()
     except GoogleOAuthError:
         raise
+    except httpx.HTTPStatusError as exc:
+        try:
+            detail = exc.response.json()
+        except ValueError:
+            detail = exc.response.text
+        raise GoogleOAuthError(f"Google token exchange failed: {detail}") from exc
     except Exception as exc:
         raise GoogleOAuthError(f"Google token exchange failed: {exc}") from exc
 

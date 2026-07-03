@@ -55,6 +55,14 @@ def test_google_callback_creates_session(api_client, monkeypatch):
     assert body["user"]["email"] == "newgoogle@example.com"
     assert body["expires_in"] > 0
 
+    me_response = api_client.get(
+        "/wallet/v1/me",
+        headers={"Authorization": f"Bearer {body['access_token']}"},
+    )
+
+    assert me_response.status_code == 200
+    assert me_response.json()["email"] == "newgoogle@example.com"
+
 
 def test_google_callback_rejects_state_mismatch(api_client, monkeypatch):
     _set_state_cookie(api_client, "correct-state")
