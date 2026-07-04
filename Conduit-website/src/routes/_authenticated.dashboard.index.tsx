@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import { formatUsd, toMicro } from "@/lib/money";
 import type { MeResponse } from "./_authenticated";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({ meta: [{ title: "Overview — Conduit" }] }),
   component: OverviewPage,
 });

@@ -18,7 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OauthConsentRouteImport } from './routes/oauth.consent'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated.dashboard.index'
 import { Route as WalletTopupSuccessRouteImport } from './routes/wallet.topup.success'
 import { Route as WalletTopupCancelRouteImport } from './routes/wallet.topup.cancel'
 import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
@@ -73,11 +73,12 @@ const OauthConsentRoute = OauthConsentRouteImport.update({
   path: '/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const WalletTopupSuccessRoute = WalletTopupSuccessRouteImport.update({
   id: '/wallet/topup/success',
   path: '/wallet/topup/success',
@@ -95,39 +96,39 @@ const AuthGoogleCallbackRoute = AuthGoogleCallbackRouteImport.update({
 } as any)
 const AuthenticatedDashboardUsageRoute =
   AuthenticatedDashboardUsageRouteImport.update({
-    id: '/usage',
-    path: '/usage',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/usage',
+    path: '/dashboard/usage',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardTransactionsRoute =
   AuthenticatedDashboardTransactionsRouteImport.update({
-    id: '/transactions',
-    path: '/transactions',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/transactions',
+    path: '/dashboard/transactions',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardSettingsRoute =
   AuthenticatedDashboardSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/settings',
+    path: '/dashboard/settings',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardKeysRoute =
   AuthenticatedDashboardKeysRouteImport.update({
-    id: '/keys',
-    path: '/keys',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/keys',
+    path: '/dashboard/keys',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardAppsRoute =
   AuthenticatedDashboardAppsRouteImport.update({
-    id: '/apps',
-    path: '/apps',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/apps',
+    path: '/dashboard/apps',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardAccessGroupsRoute =
   AuthenticatedDashboardAccessGroupsRouteImport.update({
-    id: '/access-groups',
-    path: '/access-groups',
-    getParentRoute: () => AuthenticatedDashboardRoute,
+    id: '/dashboard/access-groups',
+    path: '/dashboard/access-groups',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -138,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/partner': typeof PartnerRoute
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/oauth/consent': typeof OauthConsentRoute
   '/dashboard/access-groups': typeof AuthenticatedDashboardAccessGroupsRoute
   '/dashboard/apps': typeof AuthenticatedDashboardAppsRoute
@@ -149,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
   '/wallet/topup/cancel': typeof WalletTopupCancelRoute
   '/wallet/topup/success': typeof WalletTopupSuccessRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,7 +159,6 @@ export interface FileRoutesByTo {
   '/partner': typeof PartnerRoute
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/oauth/consent': typeof OauthConsentRoute
   '/dashboard/access-groups': typeof AuthenticatedDashboardAccessGroupsRoute
   '/dashboard/apps': typeof AuthenticatedDashboardAppsRoute
@@ -169,6 +169,7 @@ export interface FileRoutesByTo {
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
   '/wallet/topup/cancel': typeof WalletTopupCancelRoute
   '/wallet/topup/success': typeof WalletTopupSuccessRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -180,7 +181,6 @@ export interface FileRoutesById {
   '/partner': typeof PartnerRoute
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/oauth/consent': typeof OauthConsentRoute
   '/_authenticated/dashboard/access-groups': typeof AuthenticatedDashboardAccessGroupsRoute
   '/_authenticated/dashboard/apps': typeof AuthenticatedDashboardAppsRoute
@@ -191,6 +191,7 @@ export interface FileRoutesById {
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
   '/wallet/topup/cancel': typeof WalletTopupCancelRoute
   '/wallet/topup/success': typeof WalletTopupSuccessRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -202,7 +203,6 @@ export interface FileRouteTypes {
     | '/partner'
     | '/pricing'
     | '/security'
-    | '/dashboard'
     | '/oauth/consent'
     | '/dashboard/access-groups'
     | '/dashboard/apps'
@@ -213,6 +213,7 @@ export interface FileRouteTypes {
     | '/auth/google/callback'
     | '/wallet/topup/cancel'
     | '/wallet/topup/success'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -222,7 +223,6 @@ export interface FileRouteTypes {
     | '/partner'
     | '/pricing'
     | '/security'
-    | '/dashboard'
     | '/oauth/consent'
     | '/dashboard/access-groups'
     | '/dashboard/apps'
@@ -233,6 +233,7 @@ export interface FileRouteTypes {
     | '/auth/google/callback'
     | '/wallet/topup/cancel'
     | '/wallet/topup/success'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
@@ -243,7 +244,6 @@ export interface FileRouteTypes {
     | '/partner'
     | '/pricing'
     | '/security'
-    | '/_authenticated/dashboard'
     | '/oauth/consent'
     | '/_authenticated/dashboard/access-groups'
     | '/_authenticated/dashboard/apps'
@@ -254,6 +254,7 @@ export interface FileRouteTypes {
     | '/auth/google/callback'
     | '/wallet/topup/cancel'
     | '/wallet/topup/success'
+    | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -335,11 +336,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
       path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/wallet/topup/success': {
@@ -365,81 +366,69 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/dashboard/usage': {
       id: '/_authenticated/dashboard/usage'
-      path: '/usage'
+      path: '/dashboard/usage'
       fullPath: '/dashboard/usage'
       preLoaderRoute: typeof AuthenticatedDashboardUsageRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard/transactions': {
       id: '/_authenticated/dashboard/transactions'
-      path: '/transactions'
+      path: '/dashboard/transactions'
       fullPath: '/dashboard/transactions'
       preLoaderRoute: typeof AuthenticatedDashboardTransactionsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard/settings': {
       id: '/_authenticated/dashboard/settings'
-      path: '/settings'
+      path: '/dashboard/settings'
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard/keys': {
       id: '/_authenticated/dashboard/keys'
-      path: '/keys'
+      path: '/dashboard/keys'
       fullPath: '/dashboard/keys'
       preLoaderRoute: typeof AuthenticatedDashboardKeysRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard/apps': {
       id: '/_authenticated/dashboard/apps'
-      path: '/apps'
+      path: '/dashboard/apps'
       fullPath: '/dashboard/apps'
       preLoaderRoute: typeof AuthenticatedDashboardAppsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard/access-groups': {
       id: '/_authenticated/dashboard/access-groups'
-      path: '/access-groups'
+      path: '/dashboard/access-groups'
       fullPath: '/dashboard/access-groups'
       preLoaderRoute: typeof AuthenticatedDashboardAccessGroupsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
-interface AuthenticatedDashboardRouteChildren {
+interface AuthenticatedRouteChildren {
   AuthenticatedDashboardAccessGroupsRoute: typeof AuthenticatedDashboardAccessGroupsRoute
   AuthenticatedDashboardAppsRoute: typeof AuthenticatedDashboardAppsRoute
   AuthenticatedDashboardKeysRoute: typeof AuthenticatedDashboardKeysRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardTransactionsRoute: typeof AuthenticatedDashboardTransactionsRoute
   AuthenticatedDashboardUsageRoute: typeof AuthenticatedDashboardUsageRoute
-}
-
-const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
-  {
-    AuthenticatedDashboardAccessGroupsRoute:
-      AuthenticatedDashboardAccessGroupsRoute,
-    AuthenticatedDashboardAppsRoute: AuthenticatedDashboardAppsRoute,
-    AuthenticatedDashboardKeysRoute: AuthenticatedDashboardKeysRoute,
-    AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
-    AuthenticatedDashboardTransactionsRoute:
-      AuthenticatedDashboardTransactionsRoute,
-    AuthenticatedDashboardUsageRoute: AuthenticatedDashboardUsageRoute,
-  }
-
-const AuthenticatedDashboardRouteWithChildren =
-  AuthenticatedDashboardRoute._addFileChildren(
-    AuthenticatedDashboardRouteChildren,
-  )
-
-interface AuthenticatedRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
+  AuthenticatedDashboardAccessGroupsRoute:
+    AuthenticatedDashboardAccessGroupsRoute,
+  AuthenticatedDashboardAppsRoute: AuthenticatedDashboardAppsRoute,
+  AuthenticatedDashboardKeysRoute: AuthenticatedDashboardKeysRoute,
+  AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
+  AuthenticatedDashboardTransactionsRoute:
+    AuthenticatedDashboardTransactionsRoute,
+  AuthenticatedDashboardUsageRoute: AuthenticatedDashboardUsageRoute,
+  AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
